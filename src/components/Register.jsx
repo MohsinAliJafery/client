@@ -65,7 +65,7 @@ const Register = () => {
 
       localStorage.setItem("user", JSON.stringify(userData));
 
-      toast.success(`Welcome to PaymentPro, ${user.displayName || user.email}!`);
+      toast.success(`Welcome to Kidzet, ${user.displayName || user.email}!`);
       
       // Redirect based on role
       const redirectPath = userData.role === 'admin' ? '/admin' : '/dashboard';
@@ -103,7 +103,7 @@ const Register = () => {
                   <Shield className="text-white" size={32} />
                 </div>
                 <h1 className="text-4xl font-bold text-white mb-4">
-                  Join <span className="text-orange-500">PaymentPro</span> Today
+                  Join <span className="text-orange-500">Kidzet</span> Today
                 </h1>
                 <p className="text-xl text-gray-300">
                   Create your account in seconds with Google
@@ -142,24 +142,6 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Pricing Info */}
-              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                <h3 className="text-lg font-semibold text-white mb-4">Free Trial Included</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Free Trial</span>
-                    <span className="text-white font-semibold">14 Days</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Weekly Plan</span>
-                    <span className="text-white font-semibold">$9.99/week</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Monthly Plan</span>
-                    <span className="text-white font-semibold">$29.99/month</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right Side - Registration Card */}

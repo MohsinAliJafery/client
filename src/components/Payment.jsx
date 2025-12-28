@@ -3,6 +3,7 @@ import API from '../utils/api';
 import toast from 'react-hot-toast';
 import { ref, get, update } from "firebase/database";
 import { database } from "../firebase";
+import { CheckCircle, CreditCard, Shield, Zap, Lock, ArrowRight } from 'lucide-react';
 
 const Payment = () => {
   const [selectedMethod, setSelectedMethod] = useState('');
@@ -59,29 +60,54 @@ const Payment = () => {
   }
 };
 
-const plans = [
-  {
-    key: "trial_days",
-    title: "Free Trial",
-    ...settings.plans.trial_days
-  },
-  {
-    key: "weekly_sub",
-    title: "Weekly",
-    ...settings.plans.weekly_sub
-  },
-  {
-    key: "monthly_sub",
-    title: "Monthly",
-    ...settings.plans.monthly_sub
-  },
-  {
-    key: "yearly_sub",
-    title: "Yearly",
-    ...settings.plans.yearly_sub
-  }
-];
+  const plans = [
+    {
+      key: "trial_days",
+      title: "Free Trial",
+      icon: "🆓",
+      features: ["Full access", "No commitment"],
+      ...settings.plans.trial_days
+    },
+    {
+      key: "weekly_sub",
+      title: "Weekly",
+      icon: "📅",
+      features: ["7 days access", "Cancel anytime"],
+      ...settings.plans.weekly_sub
+    },
+    {
+      key: "monthly_sub",
+      title: "Monthly",
+      icon: "🗓️",
+      features: ["30 days access", "Best value", "Priority support"],
+      popular: true,
+      ...settings.plans.monthly_sub
+    },
+    {
+      key: "yearly_sub",
+      title: "Yearly",
+      icon: "🏆",
+      features: ["365 days access", "Save 20%", "VIP support"],
+      ...settings.plans.yearly_sub
+    }
+  ];
 
+    const paymentMethods = [
+    {
+      id: 'paypal',
+      name: 'PayPal',
+      icon: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg',
+      description: 'Secure payment with PayPal',
+      enabled: settings.paypalEnabled
+    },
+    {
+      id: 'paytm',
+      name: 'PayTM',
+      icon: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Paytm_Logo_%28standalone%29.svg',
+      description: 'Fast payment with PayTM',
+      enabled: settings.paytmEnabled
+    }
+  ];
 
   useEffect(() => {
     // Clear previous PayPal buttons when method changes
@@ -394,114 +420,297 @@ const plans = [
     }
   }, [selectedPlan]);
 
- if (settingsLoading) {
+  if (settingsLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-lg text-gray-700">Loading payment options...</p>
+        <div className="flex flex-col items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold text-center mb-8 text-orange-500">
-        Choose Your Plan
-      </h1>
-
-      {/* Plans */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-  {plans.map(plan => (
-    <div
-      key={plan.key}
-      onClick={() => setSelectedPlan(plan.key)}
-      className={`cursor-pointer border-2 rounded-lg p-6 text-center transition
-        ${selectedPlan === plan.key
-          ? "border-orange-500 shadow-lg"
-          : "border-gray-300"
-        }`}
-    >
-      <h2 className="text-xl font-semibold mb-2">{plan.title}</h2>
-
-      <p className="text-gray-600 mb-4">
-        {plan.days} days access
-      </p>
-
-      <p className="text-2xl font-bold text-black">
-        {plan.price === 0
-          ? "Free"
-          : `${settings.currency} ${plan.price}`
-        }
-      </p>
-    </div>
-  ))}
-</div>
-
-
-      {/* Payment Methods */}
-      <h2 className="text-2xl font-semibold mb-4 text-center text-gray-700">
-        Select Payment Method
-      </h2>
-      <div className="flex flex-wrap justify-center gap-6 mb-8">
-        {settings.paypalEnabled && (
-          <div
-            onClick={() => setSelectedMethod('paypal')}
-            className={`cursor-pointer border-2 rounded-lg p-6 w-48 text-center hover:shadow-lg transition 
-              ${selectedMethod === 'paypal' ? 'border-orange-500 shadow-lg' : 'border-gray-300'}`}
-          >
-            <h3 className="text-lg font-semibold mb-2">PayPal</h3>
-            <p className="text-gray-600">Pay with your PayPal account</p>
-          </div>
-        )}
-        {settings.paytmEnabled && (
-          <div
-            onClick={() => setSelectedMethod('paytm')}
-            className={`cursor-pointer border-2 rounded-lg p-6 w-48 text-center hover:shadow-lg transition 
-              ${selectedMethod === 'paytm' ? 'border-orange-500 shadow-lg' : 'border-gray-300'}`}
-          >
-            <h3 className="text-lg font-semibold mb-2">PayTM</h3>
-            <p className="text-gray-600">Pay with PayTM</p>
-          </div>
-        )}
-      </div>
-
-      {/* Payment Actions */}
-      <div className="flex justify-center">
-        {selectedMethod === 'paypal' && (
-          <div className="w-full md:w-1/2">
-            {!selectedPlan ? (
-              <p className="text-center text-red-500 mb-4">
-                Please select a subscription plan to continue with PayPal
-              </p>
-            ) : (
-              <div ref={paypalButtonRef}></div>
-            )}
-            {loading && <p className="text-center mt-2">Processing PayPal payment...</p>}
-          </div>
-        )}
-
-        {selectedMethod === 'paytm' && (
-          <div>
-            {!selectedPlan ? (
-              <p className="text-center text-red-500 mb-4">
-                Please select a subscription plan to continue with PayTM
-              </p>
-            ) : (
-              <button
-                onClick={handlePaytmPayment}
-                disabled={loading}
-                className="px-6 py-3 bg-orange-500 text-white rounded hover:bg-orange-600 transition"
-              >
-                {loading ? 'Processing...' : 'Proceed to PayTM'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {selectedMethod && !selectedPlan && (
-          <p className="text-center text-red-500 mt-4">
-            Please select a subscription plan to continue with {selectedMethod.toUpperCase()}
+ return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+            Choose Your Perfect Plan
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Get started with our flexible subscription plans. Cancel anytime.
           </p>
-        )}
+          <div className="flex items-center justify-center mt-6 space-x-4">
+            <div className="flex items-center">
+              <Shield className="w-5 h-5 text-green-500 mr-2" />
+              <span className="text-sm text-gray-600">Secure Payment</span>
+            </div>
+            <div className="flex items-center">
+              <CreditCard className="w-5 h-5 text-blue-500 mr-2" />
+              <span className="text-sm text-gray-600">Multiple Methods</span>
+            </div>
+            <div className="flex items-center">
+              <Zap className="w-5 h-5 text-orange-500 mr-2" />
+              <span className="text-sm text-gray-600">Instant Access</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Plans Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+          {plans.map(plan => (
+            <div
+              key={plan.key}
+              onClick={() => setSelectedPlan(plan.key)}
+              className={`
+                relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300
+                border-2 cursor-pointer transform hover:-translate-y-1
+                ${selectedPlan === plan.key 
+                  ? 'border-orange-500 ring-2 ring-orange-200' 
+                  : 'border-transparent hover:border-gray-200'
+                }
+                ${plan.popular ? 'ring-2 ring-blue-500/20' : ''}
+              `}
+            >
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
+                    MOST POPULAR
+                  </div>
+                </div>
+              )}
+
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="text-3xl">{plan.icon}</div>
+                  {selectedPlan === plan.key && (
+                    <CheckCircle className="w-6 h-6 text-green-500" />
+                  )}
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.title}</h3>
+                
+                <div className="mb-6">
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-bold text-gray-900">
+                      {plan.price === 0 ? 'Free' : `${settings.currency} ${plan.price}`}
+                    </span>
+                    {plan.price > 0 && (
+                      <span className="text-gray-500 ml-2">/ {plan.title.toLowerCase().replace('ly', '')}</span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {/* {plan.days} days access */}
+                    3 days access
+                  </p>
+                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                      <span className="text-gray-600">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  className={`
+                    w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300
+                    ${selectedPlan === plan.key
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }
+                  `}
+                >
+                  {selectedPlan === plan.key ? 'Selected' : 'Select Plan'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Payment Section */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="md:flex">
+            {/* Left Side - Payment Methods */}
+            <div className="md:w-1/2 p-8 md:p-12 border-r border-gray-200">
+              <div className="flex items-center mb-8">
+                <Lock className="w-6 h-6 text-gray-400 mr-3" />
+                <h2 className="text-2xl font-bold text-gray-900">Secure Payment</h2>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                {paymentMethods.filter(m => m.enabled).map(method => (
+                  <div
+                    key={method.id}
+                    onClick={() => setSelectedMethod(method.id)}
+                    className={`
+                      flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300
+                      hover:shadow-md
+                      ${selectedMethod === method.id
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }
+                    `}
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center bg-white rounded-lg border border-gray-200 mr-4">
+                      <img src={method.icon} alt={method.name} className="w-8 h-8 object-contain" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{method.name}</h3>
+                      <p className="text-sm text-gray-500">{method.description}</p>
+                    </div>
+                    <div className={`
+                      w-5 h-5 rounded-full border-2 flex items-center justify-center
+                      ${selectedMethod === method.id
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'border-gray-300'
+                      }
+                    `}>
+                      {selectedMethod === method.id && (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {selectedMethod && selectedPlan && (
+                <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                  <div className="flex items-start">
+                    <CheckCircle className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-1">Ready to proceed</h4>
+                      <p className="text-sm text-gray-600">
+                        You've selected <span className="font-semibold">{plans.find(p => p.key === selectedPlan)?.title}</span> plan
+                        with <span className="font-semibold">{selectedMethod.toUpperCase()}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side - Payment Button & Summary */}
+            <div className="md:w-1/2 p-8 md:p-12 bg-gradient-to-br from-gray-50 to-gray-100">
+              {selectedPlan ? (
+                <>
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h3>
+                  
+                  <div className="bg-white rounded-xl p-6 shadow-sm mb-8">
+                    <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">
+                          {plans.find(p => p.key === selectedPlan)?.title} Plan
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          {plans.find(p => p.key === selectedPlan)?.days} days access
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-gray-900">
+                          {plans.find(p => p.key === selectedPlan)?.price === 0 
+                            ? 'Free' 
+                            : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Subtotal</span>
+                        <span className="font-medium">
+                          {plans.find(p => p.key === selectedPlan)?.price === 0 
+                            ? 'Free' 
+                            : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
+                          }
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Tax</span>
+                        <span className="font-medium">Included</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold text-gray-900 pt-3 border-t border-gray-200">
+                        <span>Total</span>
+                        <span>
+                          {plans.find(p => p.key === selectedPlan)?.price === 0 
+                            ? 'Free' 
+                            : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Buttons */}
+                  {selectedMethod === 'paypal' && (
+                    <div>
+                      <div className="mb-4">
+                        <div className="flex items-center text-sm text-gray-600 mb-2">
+                          <Shield className="w-4 h-4 mr-2" />
+                          <span>Secure payment by PayPal</span>
+                        </div>
+                        <div ref={paypalButtonRef} className="rounded-lg overflow-hidden"></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedMethod === 'paytm' && (
+                    <button
+                      onClick={handlePaytmPayment}
+                      disabled={loading}
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl font-semibold
+                        hover:from-blue-600 hover:to-blue-700 transition-all duration-300
+                        disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl
+                        flex items-center justify-center"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          Proceed with PayTM
+                          <ArrowRight className="w-5 h-5 ml-3" />
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {!selectedMethod && (
+                    <div className="text-center py-8">
+                      <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Please select a payment method to continue</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <CreditCard className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Plan</h3>
+                  <p className="text-gray-500 max-w-sm">
+                    Choose a subscription plan above to proceed with payment
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Security Footer */}
+        <div className="mt-12 text-center">
+          <p className="text-sm text-gray-500">
+            🔒 Your payment is secure and encrypted. We never store your credit card details.
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            By proceeding, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </div>
       </div>
     </div>
   );
