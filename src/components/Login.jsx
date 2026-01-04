@@ -84,67 +84,18 @@ const Login = () => {
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <CreditCard className="text-white" size={32} />
-              </div>
-            </div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Welcome to <span className="text-orange-500">Kidzet</span>
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Secure payment portal with seamless Google authentication
+              Secure and seamless Google authentication
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            {/* Left Side - Features */}
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
-              <h2 className="text-2xl font-bold text-white mb-6">Why Choose Us?</h2>
-              
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="p-3 bg-orange-500/10 rounded-xl">
-                    <Shield className="text-orange-500" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Secure Authentication</h3>
-                    <p className="text-gray-400">One-click Google login with enterprise-grade security</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="p-3 bg-orange-500/10 rounded-xl">
-                    <CreditCard className="text-orange-500" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Fast Payments</h3>
-                    <p className="text-gray-400">Instant payment processing with multiple gateways</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="p-3 bg-orange-500/10 rounded-xl">
-                    <Users className="text-orange-500" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Easy Management</h3>
-                    <p className="text-gray-400">Simple dashboard to manage all your payments</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 pt-8 border-t border-gray-700">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1 h-px bg-gray-700"></div>
-                  <span className="text-gray-400 text-sm">Trusted by businesses worldwide</span>
-                  <div className="flex-1 h-px bg-gray-700"></div>
-                </div>
-              </div>
-            </div>
+          <div className="flex justify-center gap-8 items-center">
 
             {/* Right Side - Login Card */}
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="bg-gray-800/50 max-w-xl backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-white mb-2">Get Started</h2>
                 <p className="text-gray-400">Sign in with your Google account</p>
@@ -188,10 +139,7 @@ const Login = () => {
               {/* Demo Credentials */}
               <div className="mt-8 pt-8 border-t border-gray-700">
                 <div className="text-center">
-                  <p className="text-sm text-gray-400 mb-2">Using for testing?</p>
-                  <div className="inline-flex items-center space-x-2 text-xs text-gray-500 bg-gray-900/50 px-3 py-2 rounded-lg">
-                    <span>Try any Google account</span>
-                  </div>
+
                 </div>
               </div>
             </div>

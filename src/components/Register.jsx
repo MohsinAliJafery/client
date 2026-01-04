@@ -99,9 +99,6 @@ const Register = () => {
             {/* Left Side - Registration Info */}
             <div className="space-y-8">
               <div>
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-                  <Shield className="text-white" size={32} />
-                </div>
                 <h1 className="text-4xl font-bold text-white mb-4">
                   Join <span className="text-orange-500">Kidzet</span> Today
                 </h1>

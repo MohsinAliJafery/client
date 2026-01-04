@@ -8,6 +8,7 @@ import Payment from './components/Payment.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import Layout from './components/Layout.jsx';
 import PaymentSuccess from './components/PaymentSuccess.jsx';
+import HomePage from './components/HomePage.jsx';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -42,7 +43,7 @@ function App() {
       />
       
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
