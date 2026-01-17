@@ -85,13 +85,7 @@ const Register = () => {
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
           <div className="mb-8">
-            <Link
-              to="/login"
-              className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={18} className="mr-2" />
-              Back to Login
-            </Link>
+
           </div>
 
           {/* Main Content */}
@@ -187,11 +181,11 @@ const Register = () => {
               <div className="space-y-4">
                 <p className="text-sm text-center text-gray-400">
                   By registering, you agree to our{" "}
-                  <a href="#" className="text-orange-500 hover:text-orange-400 underline">
+                  <a href="/terms-and-condition" className="text-orange-500 hover:text-orange-400 underline">
                     Terms of Service
                   </a>{" "}
                   and{" "}
-                  <a href="#" className="text-orange-500 hover:text-orange-400 underline">
+                  <a href="privacy-policy" className="text-orange-500 hover:text-orange-400 underline">
                     Privacy Policy
                   </a>
                 </p>
@@ -203,7 +197,7 @@ const Register = () => {
                       to="/login"
                       className="text-orange-500 hover:text-orange-400 font-semibold underline"
                     >
-                      Sign in here
+                      Sign in
                     </Link>
                   </p>
                 </div>

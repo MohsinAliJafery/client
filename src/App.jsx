@@ -9,6 +9,8 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import Layout from './components/Layout.jsx';
 import PaymentSuccess from './components/PaymentSuccess.jsx';
 import HomePage from './components/HomePage.jsx';
+import PrivacyPolicy from './components/PrivacyPolicy.jsx';
+import TermsConditions from './components/TermsandCondition.jsx';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -47,8 +49,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-and-condition" element={<TermsConditions />} />
         
-        {/* All protected routes wrapped with Layout */}
         <Route 
           path="/dashboard" 
           element={

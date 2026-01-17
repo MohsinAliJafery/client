@@ -121,15 +121,14 @@ const Login = () => {
                   </div>
                 </div>
 
-                {/* Terms */}
                 <div className="text-center">
                   <p className="text-sm text-gray-400">
                     By continuing, you agree to our{" "}
-                    <a href="#" className="text-orange-500 hover:text-orange-400 underline">
+                    <a href="/terms-and-condition" className="text-orange-500 hover:text-orange-400 underline">
                       Terms of Service
                     </a>{" "}
                     and{" "}
-                    <a href="#" className="text-orange-500 hover:text-orange-400 underline">
+                    <a href="/privacy-policy" className="text-orange-500 hover:text-orange-400 underline">
                       Privacy Policy
                     </a>
                   </p>

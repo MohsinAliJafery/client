@@ -21,7 +21,8 @@ import {
   ShieldCheck,
   TrendingUp,
   X,
-  Menu
+  Menu,
+  File
 } from 'lucide-react';
 
 const HomePage = () => {
@@ -41,13 +42,12 @@ const HomePage = () => {
   const features = [
     { icon: <Eye size={24} />, title: "Remote Monitoring", desc: "Monitor from anywhere" },
     { icon: <Globe size={24} />, title: "Content Monitoring", desc: "Keep content safe" },
-    { icon: <Clock size={24} />, title: "Usage Limits", desc: "Control screen time" },
+    { icon: <File size={24} />, title: "File Transfer", desc: "Transfer Files" },
     { icon: <MapPin size={24} />, title: "Location Tracking", desc: "Know their location" },
   ];
 
   const controlFeatures = [
-    { icon: <Shield size={20} />, title: "Instant Block", desc: "Block inappropriate content instantly" },
-    { icon: <Calendar size={20} />, title: "Schedule Downtime", desc: "Set specific no-screen times" },
+    { icon: <Calendar size={20} />, title: "Gallery View", desc: "View gallery" },
     { icon: <Smartphone size={20} />, title: "App Limits", desc: "Limit specific app usage" },
     { icon: <X size={20} />, title: "App Blocker", desc: "Block unwanted apps completely" },
     { icon: <Globe size={20} />, title: "Website Limits", desc: "Filter and block websites" },
@@ -57,36 +57,15 @@ const HomePage = () => {
     "Remote Camera",
     "Screen Mirroring",
     "One-Way Audio",
-    "Schedule Downtime",
     "App Limits & Management",
     "Sync App Notifications",
-    "Social Content Detection",
-    "Inappropriate Image Detection",
     "Calls & SMS Monitoring",
-    "Website Restrictions",
-    "Live Location & Geofencing",
-    "Activity Report",
+    "Live Location",
     "Real-time Alerts",
-    "Family Chats"
+    "Image File Transfer",
+    "Video File Transfer"
   ];
 
-  const ageGroups = [
-    {
-      age: "3-8 Years Old",
-      stage: "Early Childhood",
-      desc: "Focus on basic screen time management and safe content filtering"
-    },
-    {
-      age: "9-12 Years Old",
-      stage: "Pre-teens",
-      desc: "Balance independence with supervision, manage social media access"
-    },
-    {
-      age: "13-18 Years Old",
-      stage: "Teenagers",
-      desc: "Empower responsible digital habits with balanced oversight"
-    }
-  ];
 
   const steps = [
     {
@@ -199,10 +178,6 @@ const HomePage = () => {
       <section className="bg-gradient-to-br from-gray-700 to-gray-800 py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-orange-500/20 text-orange-400 rounded-full mb-6 border border-orange-500/30">
-              <Shield className="mr-2" size={16} />
-              Trusted Parental Control
-            </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
               Ultimate Digital Safety <br />For Your Children
             </h1>
@@ -258,7 +233,7 @@ const HomePage = () => {
             <p className="text-gray-400 text-center mb-8 max-w-2xl mx-auto">
               Manage every aspect of your children's digital life with precision and ease
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {controlFeatures.map((feature, index) => (
                 <div key={index} className="flex items-start space-x-3 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
                   <div className="text-orange-500 mt-1">{feature.icon}</div>
@@ -303,24 +278,6 @@ const HomePage = () => {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Age Groups Section */}
-      <section className="py-16 bg-gray-800/50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
-            Age-Specific Protection Strategies
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {ageGroups.map((group, index) => (
-              <div key={index} className="bg-gray-800/70 p-6 rounded-xl border border-gray-700 hover:border-orange-500/30 transition-all duration-300">
-                <div className="text-4xl font-bold text-orange-500 mb-2">{group.age}</div>
-                <div className="text-lg font-semibold text-white mb-4">{group.stage}</div>
-                <p className="text-gray-400">{group.desc}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -381,26 +338,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Security Features */}
-      <section className="py-16 bg-gray-800/50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
-            Enterprise-Grade Security
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {trustFeatures.map((feature, index) => (
-              <div key={index} className="bg-gray-800/70 p-6 rounded-xl border border-gray-700 text-center">
-                <div className="inline-flex p-3 bg-orange-500/10 rounded-lg mb-4 border border-orange-500/20">
-                  <div className="text-orange-500">{feature.icon}</div>
-                </div>
-                <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400 text-sm">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="py-16 bg-gradient-to-br from-orange-500 to-orange-600">
         <div className="container mx-auto px-4 text-center">
@@ -436,10 +373,10 @@ const HomePage = () => {
               <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p>
             </div>
             <div className="flex space-x-8">
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Privacy Policy</a>
+              {/* <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Privacy Policy</a>
               <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Terms of Service</a>
               <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Support</a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Contact</a>
+              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Contact</a> */}
             </div>
           </div>
           <div className="text-center text-gray-500 text-sm">
