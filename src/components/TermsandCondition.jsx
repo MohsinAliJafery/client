@@ -177,7 +177,7 @@ const TermsConditions = () => {
                 Contact us with any questions:
               </p>
               <div className="text-orange-500 font-medium">
-                📧 support@kidzet.com | 📞 1-800-KIDZET
+                📧 Kidzetofficial@gamil.com
               </div>
             </div>
           </div>

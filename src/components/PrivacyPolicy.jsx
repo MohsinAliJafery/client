@@ -136,7 +136,7 @@ const PrivacyPolicy = () => {
                 We're here to help! If you have any questions about our privacy practices, please contact us:
               </p>
               <div className="text-orange-500 font-medium">
-                📧 support@kidzet.com
+                📧 Kidzetofficial@gamil.com
               </div>
             </div>
           </div>

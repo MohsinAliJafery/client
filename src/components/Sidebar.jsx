@@ -41,7 +41,8 @@ const Sidebar = () => {
       <div className="p-6 border-b border-gray-800 flex items-center justify-between">
         {!collapsed && (
           <Link to="/dashboard" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold">Kidzet Portal</span>
+            <img src="/kidzet-sm.png" alt="Kidzet Logo" className="h-8 w-8" />
+            <span className="text-xl font-bold">Kidzet Portal</span>
           </Link>
         )}
         <button

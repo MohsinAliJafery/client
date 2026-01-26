@@ -117,7 +117,8 @@ const HomePage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p>
+              {/* <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p> */}
+              <img src='/kidzet-sm.png' alt='Kidzet Logo' className='h-12 w-12'/>
             </div>
 
             {/* Desktop Navigation */}
@@ -370,7 +371,8 @@ const HomePage = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div className="flex items-center space-x-2 mb-6 md:mb-0">
-              <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p>
+              {/* <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p> */}
+              <img src='/kidzet-sm.png' alt='Kidzet Logo' className='h-10 w-10'/>
             </div>
             <div className="flex space-x-8">
               {/* <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Privacy Policy</a>
