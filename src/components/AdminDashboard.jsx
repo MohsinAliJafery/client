@@ -22,18 +22,28 @@ import {
   Shield,
   RefreshCw,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Mail,
+  Smartphone,
+  Globe,
+  Clock,
+  ShieldCheck,
+  Key,
+  Database
 } from 'lucide-react';
-import { ref, set } from "firebase/database";
+import { ref, set, get } from "firebase/database";
 import { database } from "../firebase";
+import { auth } from "../firebase"
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({});
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); // MongoDB users (subscribed)
+  const [allUsers, setAllUsers] = useState([]); // Firebase auth users
   const [transactions, setTransactions] = useState([]);
   const [settings, setSettings] = useState({});
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
@@ -43,94 +53,101 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchFirebaseUsers();
   }, []);
 
   const fetchDashboardData = async () => {
-  try {
-    setLoading(true);
-    
-    // Fetch data from MongoDB API
-    const [statsRes, usersRes, transactionsRes, settingsRes] = await Promise.all([
-      API.get('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
-      API.get('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
-      API.get('/api/admin/transactions', { headers: { Authorization: `Bearer ${token}` } }),
-      API.get('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } }),
-    ]);
-
-    // Fetch from Firebase for backup/verification
-    let firebaseSettings = {};
     try {
-      const settingsSnapshot = await get(ref(database, "app_settings"));
-      if (settingsSnapshot.exists()) {
-        firebaseSettings = settingsSnapshot.val();
-      }
-    } catch (firebaseError) {
-      console.warn('Could not fetch from Firebase:', firebaseError);
-    }
-
-    setStats(statsRes.data.data || {});
-    setUsers(usersRes.data.data || []);
-    setTransactions(transactionsRes.data.data || []);
-    
-    // Use MongoDB settings as primary, fallback to Firebase
-    setSettings(settingsRes.data.data || firebaseSettings || {});
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    toast.error('Failed to fetch dashboard data');
-  } finally {
-    setLoading(false);
-  }
-};
-
- const updateSettings = async (updatedSettings) => {
-  try {
-    setLoading(true);
-
-    console.log("settings data:", updatedSettings);
-    
-    // Prepare data for both systems
-    const settingsData = {
-      ...updatedSettings,
-      lastUpdated: new Date().toISOString(),
-      updatedBy: JSON.parse(localStorage.getItem('user'))?.name || 'Admin'
-    };
-
-    // Save to Firebase (for Payment component)
-    try {
-      await set(ref(database, "app_settings"), settingsData);
-      console.log('Saved to Firebase successfully');
-    } catch (firebaseError) {
-      console.error('Firebase save error:', firebaseError);
-      toast.error('Failed to save to Firebase');
-      throw firebaseError; // Re-throw to stop execution
-    }
-
-    // Save to MongoDB (for admin dashboard)
-    try {
-      const response = await API.put('/api/admin/settings', settingsData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      setLoading(true);
       
-      // Update local state with MongoDB response
-      setSettings(response.data.data || settingsData);
-      console.log('Saved to MongoDB successfully');
-    } catch (mongoError) {
-      console.error('MongoDB save error:', mongoError);
-      // Don't throw here, Firebase was successful
-      toast.warning('Saved to Firebase but MongoDB update failed');
-    }
+      const [statsRes, usersRes, transactionsRes, settingsRes] = await Promise.all([
+        API.get('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
+        API.get('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
+        API.get('/api/admin/transactions', { headers: { Authorization: `Bearer ${token}` } }),
+        API.get('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
 
-    toast.success('Settings updated successfully in both systems');
-    
-  } catch (error) {
-    console.error('Error updating settings:', error);
-    if (!error.message.includes('Firebase')) {
-      toast.error('Failed to update settings');
+      let firebaseSettings = {};
+      try {
+        const settingsSnapshot = await get(ref(database, "app_settings"));
+        if (settingsSnapshot.exists()) {
+          firebaseSettings = settingsSnapshot.val();
+        }
+      } catch (firebaseError) {
+        console.warn('Could not fetch from Firebase:', firebaseError);
+      }
+
+      setStats(statsRes.data.data || {});
+      setUsers(usersRes.data.data || []);
+      setTransactions(transactionsRes.data.data || []);
+      setSettings(settingsRes.data.data || firebaseSettings || {});
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to fetch dashboard data');
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const fetchFirebaseUsers = async () => {
+    try {
+      setAuthLoading(true);
+      const response = await API.get('/api/admin/firebase-users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAllUsers(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching Firebase users:', error);
+      toast.error('Failed to fetch Firebase users');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const updateSettings = async (updatedSettings) => {
+    try {
+      setLoading(true);
+
+      console.log("settings data:", updatedSettings);
+      
+      const settingsData = {
+        ...updatedSettings,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: JSON.parse(localStorage.getItem('user'))?.name || 'Admin'
+      };
+
+      try {
+        await set(ref(database, "app_settings"), settingsData);
+        console.log('Saved to Firebase successfully');
+      } catch (firebaseError) {
+        console.error('Firebase save error:', firebaseError);
+        toast.error('Failed to save to Firebase');
+        throw firebaseError;
+      }
+
+      try {
+        const response = await API.put('/api/admin/settings', settingsData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        setSettings(response.data.data || settingsData);
+        console.log('Saved to MongoDB successfully');
+      } catch (mongoError) {
+        console.error('MongoDB save error:', mongoError);
+        toast.warning('Saved to Firebase but MongoDB update failed');
+      }
+
+      toast.success('Settings updated successfully in both systems');
+      
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      if (!error.message.includes('Firebase')) {
+        toast.error('Failed to update settings');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user =>
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,8 +159,13 @@ const AdminDashboard = () => {
     transaction.paymentMethod?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredAuthUsers = allUsers.filter(user =>
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleExportData = (type) => {
-    // Export functionality
     toast.success(`${type} data exported successfully`);
   };
 
@@ -160,31 +182,49 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600">Manage your platform and users</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => fetchDashboardData()}
+            className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw size={18} />
+            <span>Refresh</span>
+          </button>
+          <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium">
+            Generate Report
+          </button>
+        </div>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Users"
-          value={stats.totalUsers || 0}
+          value={allUsers.length || 0}
           icon={<Users className="text-blue-500" size={24} />}
           change="+12%"
           color="blue"
+          subtitle="Firebase Registered"
+        />
+        <StatCard
+          title="Subscribed Users"
+          value={users.length || 0}
+          icon={<UserCheck className="text-green-500" size={24} />}
+          change="+23%"
+          color="green"
+          subtitle="MongoDB Paid Users"
         />
         <StatCard
           title="Total Revenue"
           value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
-          icon={<DollarSign className="text-green-500" size={24} />}
-          change="+23%"
-          color="green"
-        />
-        <StatCard
-          title="Completed Transactions"
-          value={stats.completedTransactions || 0}
-          icon={<CheckCircle className="text-purple-500" size={24} />}
-          change="+8%"
+          icon={<DollarSign className="text-purple-500" size={24} />}
+          change="+18%"
           color="purple"
+          subtitle="All Transactions"
         />
         <StatCard
           title="Active Subscriptions"
@@ -192,6 +232,7 @@ const AdminDashboard = () => {
           icon={<Activity className="text-orange-500" size={24} />}
           change="+5%"
           color="orange"
+          subtitle="Currently Active"
         />
       </div>
 
@@ -200,7 +241,8 @@ const AdminDashboard = () => {
         <div className="flex flex-wrap border-b border-gray-200">
           {[
             { id: 'dashboard', label: 'Overview', icon: <BarChart size={18} /> },
-            { id: 'users', label: 'Users', icon: <Users size={18} /> },
+            { id: 'subscribed', label: 'Subscribed Users', icon: <UserCheck size={18} /> },
+            { id: 'registered', label: 'Registered Users', icon: <Users size={18} /> },
             { id: 'transactions', label: 'Transactions', icon: <CreditCard size={18} /> },
             { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
           ].map((tab) => (
@@ -224,16 +266,51 @@ const AdminDashboard = () => {
           {/* Dashboard Overview */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Recent Activity */}
-              <div className="">
-                <RecentTransactions transactions={transactions.slice(0, 5)} />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <RecentTransactions transactions={transactions.slice(0, 5)} />
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="font-semibold text-gray-900 mb-4">System Status</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Database className="text-green-600" size={20} />
+                        <div>
+                          <p className="font-medium text-gray-900">MongoDB</p>
+                          <p className="text-sm text-gray-600">Subscribed Users</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-green-600">Active</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Key className="text-blue-600" size={20} />
+                        <div>
+                          <p className="font-medium text-gray-900">Firebase Auth</p>
+                          <p className="text-sm text-gray-600">Registered Users</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-blue-600">Active</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <CreditCard className="text-purple-600" size={20} />
+                        <div>
+                          <p className="font-medium text-gray-900">Payments</p>
+                          <p className="text-sm text-gray-600">Transactions</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-purple-600">Active</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
             </div>
           )}
 
-          {/* Users Management */}
-          {activeTab === 'users' && (
+          {/* Subscribed Users (MongoDB) */}
+          {activeTab === 'subscribed' && (
             <UsersTable
               users={filteredUsers}
               searchTerm={searchTerm}
@@ -242,6 +319,20 @@ const AdminDashboard = () => {
                 setSelectedUser(user);
                 setShowUserModal(true);
               }}
+              title="Subscribed Users"
+              description="Users who have purchased subscriptions (MongoDB)"
+            />
+          )}
+
+          {/* Registered Users (Firebase Auth) */}
+          {activeTab === 'registered' && (
+            <AuthUsersTable
+              users={filteredAuthUsers}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              loading={authLoading}
+              onRefresh={fetchFirebaseUsers}
+              subscribedUsers={users}
             />
           )}
 
@@ -277,8 +368,8 @@ const AdminDashboard = () => {
   );
 };
 
-// Sub-components
-const StatCard = ({ title, value, icon, change, color }) => {
+// StatCard Component
+const StatCard = ({ title, value, icon, change, color, subtitle }) => {
   const colorClasses = {
     blue: 'bg-blue-50 border-blue-100',
     green: 'bg-green-50 border-green-100',
@@ -299,11 +390,15 @@ const StatCard = ({ title, value, icon, change, color }) => {
         )}
       </div>
       <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-      <p className="text-sm text-gray-600 mt-1">{title}</p>
+      <p className="text-sm text-gray-900 font-medium mt-1">{title}</p>
+      {subtitle && (
+        <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+      )}
     </div>
   );
 };
 
+// QuickStat Component
 const QuickStat = ({ title, value, icon }) => (
   <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
     <div className="flex items-center space-x-3">
@@ -318,6 +413,7 @@ const QuickStat = ({ title, value, icon }) => (
   </div>
 );
 
+// RecentTransactions Component
 const RecentTransactions = ({ transactions }) => (
   <div className="bg-white rounded-lg border border-gray-200 p-6">
     <div className="flex justify-between items-center mb-4">
@@ -354,14 +450,19 @@ const RecentTransactions = ({ transactions }) => (
   </div>
 );
 
-const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick }) => (
+// UsersTable Component (MongoDB Subscribed Users)
+const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick, title = "Users", description = "All users" }) => (
   <div className="space-y-4">
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <p className="text-sm text-gray-600">{description}</p>
+      </div>
       <div className="relative flex-1 max-w-md">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
         <input
           type="text"
-          placeholder="Search users..."
+          placeholder="Search subscribed users..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -445,9 +546,235 @@ const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick }) => (
         </tbody>
       </table>
     </div>
+    {users.length === 0 && (
+      <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <UserCheck className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">No subscribed users found</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          {searchTerm ? 'Try a different search term' : 'No users have subscribed yet'}
+        </p>
+      </div>
+    )}
   </div>
 );
 
+// AuthUsersTable Component (Firebase Authentication Users)
+const AuthUsersTable = ({ users, searchTerm, setSearchTerm, loading, onRefresh, subscribedUsers }) => {
+  const subscribedEmails = subscribedUsers.map(user => user.email?.toLowerCase());
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500"></div>
+        <p className="mt-2 text-gray-600">Loading registered users...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Registered Users</h3>
+          <p className="text-sm text-gray-600">All Firebase Authentication users</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search by email, name, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={onRefresh}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <RefreshCw size={18} />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  User Info
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Last Active
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subscription
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.map((user) => {
+                const isSubscribed = subscribedEmails.includes(user.email?.toLowerCase());
+                const lastSignIn = user.metadata?.lastSignInTime 
+                  ? new Date(user.metadata.lastSignInTime) 
+                  : null;
+                
+                return (
+                  <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          {user.photoURL ? (
+                            <img
+                              className="h-10 w-10 rounded-full object-cover"
+                              src={user.photoURL}
+                              alt={user.displayName}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `
+                                  <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-600 font-semibold">
+                                    ${user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                                  </div>
+                                `;
+                              }}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-600 font-semibold">
+                              {user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.displayName || 'No Name Provided'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ID: {user.uid.substring(0, 8)}...
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <Mail size={14} className="mr-2 text-gray-400" />
+                          {user.email || 'No email'}
+                          {user.emailVerified && (
+                            <ShieldCheck size={14} className="ml-2 text-green-500" title="Email Verified" />
+                          )}
+                        </div>
+                        {user.phoneNumber && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Smartphone size={14} className="mr-2 text-gray-400" />
+                            {user.phoneNumber}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.disabled
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {user.disabled ? 'Disabled' : 'Active'}
+                        </span>
+                        <div className="text-xs text-gray-500">
+                          Created: {user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'Unknown'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {lastSignIn ? (
+                          <>
+                            <div className="flex items-center">
+                              <Clock size={14} className="mr-1 text-gray-400" />
+                              {lastSignIn.toLocaleDateString()}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {lastSignIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-gray-400">Never signed in</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {isSubscribed ? (
+                        <div className="flex items-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800">
+                            <CheckCircle className="mr-1" size={12} />
+                            Subscribed
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Not Subscribed
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        {users.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? 'Try a different search term' : 'No users registered yet'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-blue-800">{users.length}</div>
+          <div className="text-sm text-blue-600">Total Registered</div>
+        </div>
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-green-800">
+            {users.filter(u => !u.disabled).length}
+          </div>
+          <div className="text-sm text-green-600">Active Accounts</div>
+        </div>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-purple-800">
+            {users.filter(u => u.emailVerified).length}
+          </div>
+          <div className="text-sm text-purple-600">Verified Emails</div>
+        </div>
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-orange-800">
+            {users.filter(u => subscribedEmails.includes(u.email?.toLowerCase())).length}
+          </div>
+          <div className="text-sm text-orange-600">Converted to Paid</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// TransactionsTable Component
 const TransactionsTable = ({ transactions, searchTerm, setSearchTerm, dateRange, setDateRange }) => (
   <div className="space-y-4">
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -462,7 +789,20 @@ const TransactionsTable = ({ transactions, searchTerm, setSearchTerm, dateRange,
         />
       </div>
       <div className="flex items-center space-x-3">
-
+        <select
+          value={dateRange}
+          onChange={(e) => setDateRange(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+        <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+          <Filter size={18} />
+          <span>Filter</span>
+        </button>
       </div>
     </div>
 
@@ -537,6 +877,7 @@ const TransactionsTable = ({ transactions, searchTerm, setSearchTerm, dateRange,
   </div>
 );
 
+// SettingsPanel Component
 const SettingsPanel = ({ settings, onUpdate }) => {
   const [formData, setFormData] = useState({
     freeTrialDays: 0,
@@ -561,7 +902,6 @@ const SettingsPanel = ({ settings, onUpdate }) => {
 
   useEffect(() => {
     if (settings) {
-      // Convert MongoDB structure to form structure
       console.log("Settings in UseEffect", settings)
       const newFormData = {
         freeTrialDays: settings.freeTrialDays || 0,
@@ -621,7 +961,6 @@ const SettingsPanel = ({ settings, onUpdate }) => {
         paypalEnabled: formData.paypalEnabled,
         paytmEnabled: formData.paytmEnabled,
         
-        // Firebase structure
         plans: {
           trial_days: {
             days: formData.plans.trial_days.days || formData.freeTrialDays,
@@ -897,6 +1236,7 @@ const SettingsPanel = ({ settings, onUpdate }) => {
   );
 };
 
+// UserDetailModal Component
 const UserDetailModal = ({ user, onClose }) => {
   if (!user) return null;
 
@@ -959,7 +1299,5 @@ const UserDetailModal = ({ user, onClose }) => {
     </div>
   );
 };
-
-
 
 export default AdminDashboard;
