@@ -325,7 +325,7 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link 
           to="/payment" 
           className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center justify-between"
@@ -373,7 +373,7 @@ const Dashboard = () => {
           </div>
           <Download size={16} className="text-gray-400" />
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -153,6 +153,9 @@ const Login = () => {
             <Link to="/setup" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Setup & Helps</Link>
             <Link to="/contact" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Contact</Link>
           </div>
+
+            <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-5 py-2 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all">Log In</Link>
+
           
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -178,7 +181,7 @@ const Login = () => {
           {/* Left Side - Content */}
           <div className="flex-1 text-center lg:text-left">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-              Welcome to <br /><span className="text-cyan-200">Kidzet</span>
+              Login to <span className="text-cyan-200">Kidzet</span>
             </h1>
             <p className="text-white/90 text-lg md:text-xl mt-6 max-w-lg mx-auto lg:mx-0">
               Secure and seamless authentication to protect what matters most.
@@ -242,7 +245,7 @@ const Login = () => {
               </div>
 
               {/* Trust Badges */}
-              <div className="mt-8 pt-6 border-t border-gray-100">
+              {/* <div className="mt-8 pt-6 border-t border-gray-100">
                 <div className="flex justify-center gap-6">
                   <div className="text-center">
                     <div className="text-indigo-600 font-bold text-xl">2M+</div>
@@ -257,7 +260,9 @@ const Login = () => {
                     <div className="text-gray-500 text-xs">Support</div>
                   </div>
                 </div>
-              </div>
+              </div> */}
+
+              <br /><br />
             </div>
           </div>
         </div>
