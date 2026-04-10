@@ -20,6 +20,7 @@ import {
   Headphones,
   Gift
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Icon mapping
 const iconComponents = {
@@ -68,6 +69,8 @@ const Payment = () => {
   const [couponLoading, setCouponLoading] = useState(false);
   const [discountedPrice, setDiscountedPrice] = useState(null);
   const paypalButtonRef = useRef(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
@@ -299,9 +302,9 @@ const Payment = () => {
 
             toast.success("Subscription activated successfully!");
 
-            // setTimeout(() => {
-            //   window.location.href = "/dashboard";
-            // }, 2000);
+            setTimeout(() => {
+  navigate('/dashboard');
+}, 1000);
 
           } catch (error) {
             console.error(error);
