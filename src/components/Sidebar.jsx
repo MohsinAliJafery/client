@@ -52,7 +52,7 @@ const Sidebar = () => {
       icon: <Banknote size={20} />,
       path: '/payment',
     },
-     {
+    ...(user?.role === 'admin' ? [     {
       title: 'Packages',
       icon: <Package size={20} />,
       path: '/packages',
@@ -62,7 +62,7 @@ const Sidebar = () => {
       icon: <HandCoins size={20} />,
       path: '/adminCoupons',
     },
-    ...(user?.role === 'admin' ? [{
+    {
       title: 'Admin Panel',
       icon: <Shield size={20} />,
       path: '/admin',

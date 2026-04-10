@@ -80,7 +80,6 @@ const Payment = () => {
       // Fetch packages and settings in parallel
       const [packagesRes, settingsRes] = await Promise.all([
         API.get('/api/packages/public'),
-        API.get('/api/admin/settings')
       ]);
       
       if (packagesRes.data.success) {
@@ -89,18 +88,8 @@ const Payment = () => {
         toast.error("Failed to load packages");
       }
       
-      if (settingsRes.data.success) {
-        const data = settingsRes.data.data;
-        setSettings({
-          currency: data.currency || "USD",
-          paypalEnabled: data.paypalEnabled ?? true,
-          paytmEnabled: data.paytmEnabled ?? true,
-          freeTrialDays: data.freeTrialDays || 7
-        });
-      }
     } catch (error) {
       console.error("API fetch error:", error);
-      toast.error(error.response?.data?.message || "Failed to load payment settings");
     } finally {
       setSettingsLoading(false);
     }
