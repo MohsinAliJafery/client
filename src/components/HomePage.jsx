@@ -1,397 +1,306 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom'; // Add this import
 import { 
-  Shield, 
-  Smartphone, 
-  Clock, 
-  MapPin, 
-  Globe, 
-  CheckCircle, 
-  Award,
-  Star,
-  Users,
-  Download,
-  Play,
-  ChevronRight,
-  Heart,
-  MessageCircle,
-  Eye,
-  Calendar,
-  Lock,
-  ShieldCheck,
-  TrendingUp,
-  X,
-  Menu,
-  File
-} from 'lucide-react';
+  FaVideo, FaVolumeUp, FaFolderOpen, FaMapMarkerAlt, 
+  FaClock, FaBan, FaGooglePlay, FaApple, FaChevronDown,
+  FaBars, FaTimes
+} from 'react-icons/fa';
 
 const HomePage = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
-  const awards = [
-    { title: "kidSAFE Seal Program", status: "Listed" },
-    { title: "2022 National Parenting Product Awards", status: "Winner" },
-    { title: "Educational App Store", status: "5-stars Certified" },
-    { title: "Family Choice Awards", status: "Winner" },
-    { title: "Mom's Choice Awards", status: "HONORING EXCELLENCE" },
-    { title: "Lovedbyparents", status: "Best Buy Awards 2022" },
-    { title: "The National Parenting Center", status: "SEAL OF APPROVAL" },
-  ];
+  const toggleFaq = (index) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
 
   const features = [
-    { icon: <Eye size={24} />, title: "Remote Monitoring", desc: "Monitor from anywhere" },
-    { icon: <Globe size={24} />, title: "Content Monitoring", desc: "Keep content safe" },
-    { icon: <File size={24} />, title: "File Transfer", desc: "Transfer Files" },
-    { icon: <MapPin size={24} />, title: "Location Tracking", desc: "Know their location" },
+    { icon: FaVideo, title: "Live Camera", description: "See your child's surroundings instantly through their phone camera remotely." },
+    { icon: FaVolumeUp, title: "Live Sound", description: "Listen to the environment to ensure they are in safe company." },
+    { icon: FaFolderOpen, title: "File Check", description: "Scan their gallery, downloads, and files for inappropriate content." },
+    { icon: FaMapMarkerAlt, title: "Live Location", description: "Real-time GPS tracking and 30-day location history on a map." },
+    { icon: FaClock, title: "Screen Time", description: "Set daily app usage limits and schedule bedtimes to lock the phone." },
+    { icon: FaBan, title: "App Blocker", description: "Block distracting games and social media apps with one tap." }
   ];
 
-  const controlFeatures = [
-    { icon: <Calendar size={20} />, title: "Gallery View", desc: "View gallery" },
-    { icon: <Smartphone size={20} />, title: "App Limits", desc: "Limit specific app usage" },
-    { icon: <X size={20} />, title: "App Blocker", desc: "Block unwanted apps completely" },
-    { icon: <Globe size={20} />, title: "Website Limits", desc: "Filter and block websites" },
+  const pricingPlans = [
+    { name: "Basic", price: "0", period: "mo", devices: "1 Device", features: ["Location Tracking", "Screen Time Limits"], popular: false, cta: "Download" },
+    { name: "Premium", price: "9.99", period: "mo", devices: "5 Devices", features: ["Live Camera & Sound", "Message Monitoring", "File Explorer"], popular: true, cta: "Start Free Trial" },
+    { name: "Family", price: "19.99", period: "mo", devices: "15 Devices", features: ["Priority Support", "60-Day History", "All Premium Features"], popular: false, cta: "Get Family" }
   ];
 
-  const compatibilityFeatures = [
-    "Remote Camera",
-    "Screen Mirroring",
-    "One-Way Audio",
-    "App Limits & Management",
-    "Sync App Notifications",
-    "Calls & SMS Monitoring",
-    "Live Location",
-    "Real-time Alerts",
-    "Image File Transfer",
-    "Video File Transfer"
-  ];
-
-
-  const steps = [
-    {
-      step: "1",
-      title: "Download and Install",
-      desc: "Download Kidzet Parental Control on the parent's phone."
-    },
-    {
-      step: "2",
-      title: "Sign Up and Sign In",
-      desc: "Register an account and sign in on the parent's device."
-    },
-    {
-      step: "3",
-      title: "Bind Child's Device",
-      desc: "Install Kidzet Kids on kid's phone and connect both devices."
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: "Miguel Almond",
-      text: "Kidzet Parental Control is much better than other parental monitoring apps I used previously. It's cost-efficient, has more features, and allows me to block games, apps, and websites that are not good for my child in one click.",
-      rating: 5
-    },
-    {
-      name: "Dude hygge",
-      text: "I absolutely love this app… It helps me keep track of my kids anywhere with the added bonus of being able to see any notifications that come to their phones.",
-      rating: 5
-    },
-    {
-      name: "Michelle Morrice",
-      text: "I am impressed by the Kidzet Parental Control. It is easy to use and budget-friendly. It took me a few minutes to set up the app, and I could set screen time limits, website schedule, and geofence for my kids.",
-      rating: 5
-    }
-  ];
-
-  const trustFeatures = [
-    { icon: <Lock size={20} />, title: "Uninstall Protection", desc: "Prevent unauthorized removal" },
-    { icon: <Users size={20} />, title: "Easy Co-Parenting", desc: "Share access with co-parents" },
-    { icon: <Smartphone size={20} />, title: "1 Account Bind Multi-Devices", desc: "Monitor multiple devices" },
-    { icon: <ShieldCheck size={20} />, title: "GDPR Compliance", desc: "Your data is protected" },
+  const faqs = [
+    { question: "How do I install Kidzet?", answer: "Download the app on parent's phone, create an account, then install on child's phone and scan the QR code to link." },
+    { question: "Does it work on iPhone?", answer: "Yes, Kidzet is compatible with iOS devices for both parent and child, though some features differ from Android." },
+    { question: "Is the app hidden?", answer: "You can choose 'Stealth Mode' during installation to hide the app icon on the child's device." },
+    { question: "Is there a free trial?", answer: "Yes, we offer a full-feature 3-day free trial so you can test everything before subscribing." },
+    { question: "Can I cancel anytime?", answer: "Absolutely. There are no long-term contracts and you can cancel from your dashboard settings." },
+    { question: "Does Live Camera make a sound?", answer: "No, the camera activates silently in the background for discrete monitoring purposes." },
+    { question: "Can I see WhatsApp messages?", answer: "Yes, Kidzet reads incoming notifications, allowing you to see messages from WhatsApp, Messenger, and others." },
+    { question: "Is my data secure?", answer: "Yes, all data is encrypted with bank-level security. Only you have access to your dashboard." },
+    { question: "What if the phone is offline?", answer: "The app continues to monitor and logs data locally. It uploads everything once the internet is restored." },
+    { question: "How many devices can I monitor?", answer: "Depending on your plan, you can monitor anywhere from 1 to 15 devices simultaneously." }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Navigation */}
-      <nav className="bg-gray-800/90 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              {/* <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p> */}
-              <img src='/kidzet-sm.png' alt='Kidzet Logo' className='h-12 w-12'/>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-300 hover:text-orange-500 transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-300 hover:text-orange-500 transition-colors">How It Works</a>
-              <a href="#testimonials" className="text-gray-300 hover:text-orange-500 transition-colors">Reviews</a>
-              <a href="#pricing" className="text-gray-300 hover:text-orange-500 transition-colors">Pricing</a>
-            </div>
-
-            <div className="hidden md:flex items-center space-x-4">
-              <Link
-                to="/login"
-                className="px-6 py-2 text-orange-500 border border-orange-500 rounded-lg hover:bg-orange-500/10 transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                Sign Up Free
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden text-gray-300"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              <Menu size={24} />
-            </button>
+    <div className="font-['Inter',system-ui,sans-serif] text-gray-800 bg-white overflow-x-hidden">
+      {/* Header / Navigation */}
+      <header className="fixed top-0 w-full bg-white/98 backdrop-blur-md shadow-sm z-50">
+        <nav className="max-w-6xl mx-auto flex justify-between items-center px-4 md:px-8 py-4">
+          <Link to="/" className="text-2xl md:text-3xl font-black text-indigo-600 tracking-tight">
+            Kid<span className="text-cyan-500">zet</span>.
+          </Link>
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-8">
+            <Link to="/features" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Features</Link>
+            <Link to="/pricing" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Pricing</Link>
+            <Link to="/setup" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Setup & Helps</Link>
+            <Link to="/contact" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Contact</Link>
+            <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-5 py-2 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all">Log In</Link>
           </div>
+          
+          {/* Mobile Menu Button */}
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-gray-700 text-2xl"
+          >
+            {mobileMenuOpen ? <FaTimes /> : <FaBars />}
+          </button>
+        </nav>
+        
+        {/* Mobile Navigation Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-100 shadow-lg py-4 px-6 flex flex-col gap-3 animate-slideDown">
+            <Link to="/features" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Features</Link>
+            <Link to="/pricing" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+            <Link to="/setup" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Setup & Helps</Link>
+            <Link to="/contact" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+            <Link to="/login" className="text-indigo-600 font-bold py-2">Log In</Link>
+          </div>
+        )}
+      </header>
 
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden mt-4 pb-4">
-              <div className="flex flex-col space-y-4">
-                <a href="#features" className="text-gray-300 hover:text-orange-500">Features</a>
-                <a href="#how-it-works" className="text-gray-300 hover:text-orange-500">How It Works</a>
-                <a href="#testimonials" className="text-gray-300 hover:text-orange-500">Reviews</a>
-                <a href="#pricing" className="text-gray-300 hover:text-orange-500">Pricing</a>
-                <div className="pt-4 space-y-3">
-                  <Link to="/login" className="block text-center py-2 text-orange-500 border border-orange-500 rounded-lg">
-                    Login
-                  </Link>
-                  <Link to="/register" className="block text-center py-2 bg-orange-500 text-white rounded-lg">
-                    Sign Up Free
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-gray-700 to-gray-800 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Ultimate Digital Safety <br />For Your Children
+      {/* Hero Section - Keep the same, just update the "Explore Features" button */}
+      <section className="bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-400 pt-32 pb-20 md:pt-40 md:pb-28 px-4 relative">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
+              Complete Digital &<br /><span className="text-cyan-200">Real-Life Protection</span>
             </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Advanced monitoring and protection tools to ensure your kids' online safety
+            <p className="text-white/90 text-lg md:text-xl mt-6 max-w-lg mx-auto md:mx-0">
+              Monitor your child's world with Live Camera View, Ambient Sound listening, and real-time Location Tracking. The smartest way to parent in the digital age.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <button onClick={() => navigate('/dashboard')} className="px-8 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
-                Get Started Now
-              </button>
-              <button className="px-8 py-3 bg-gray-800 text-white border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors">
-                View Features
-              </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start mt-8">
+              <a href="#download" className="bg-white text-indigo-600 font-bold px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all inline-flex items-center justify-center gap-2">
+                <FaGooglePlay /> Get App
+              </a>
+              <Link to="/features" className="border-2 border-white/50 text-white font-semibold px-6 py-3 rounded-full hover:bg-white/10 transition-all inline-flex items-center justify-center">
+                Explore Features
+              </Link>
             </div>
-            <div className="text-gray-400 mb-4">Available on:</div>
-            <div className="flex justify-center space-x-8">
-              <div className="flex items-center space-x-2 text-gray-300">
-                <img src="/play-store.png" className='h-8 w-8' alt="Google Play" />
-                <span className='5xl'>Google Play Store</span>
+          </div>
+          <div className="flex-1 w-full">
+            <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20 bg-black">
+              <div className="relative pb-[56.25%] h-0">
+                <iframe 
+                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?controls=0" 
+                  title="Kidzet App Demo" 
+                  className="absolute top-0 left-0 w-full h-full"
+                  frameBorder="0" 
+                  allowFullScreen
+                ></iframe>
               </div>
             </div>
           </div>
         </div>
+        <div className="absolute bottom-0 left-0 w-full h-20 bg-white" style={{ clipPath: "ellipse(60% 100% at 50% 100%)" }}></div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-16 bg-gray-800/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Comprehensive Digital Protection Suite
-            </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Advanced tools designed to keep your children safe in the digital world
-            </p>
+      {/* Features Section - Keep as is, but you can remove the id if not needed for scrolling */}
+      <section className="py-20 md:py-24 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Powerful Monitoring Features</h2>
+            <p className="text-gray-500 text-lg mt-4">Everything you need to keep your child safe online and offline.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="bg-gray-800/70 p-6 rounded-xl border border-gray-700 hover:border-orange-500/50 transition-all duration-300">
-                <div className="p-3 bg-orange-500/10 rounded-lg w-fit mb-4 border border-orange-500/20">
-                  <div className="text-orange-500">{feature.icon}</div>
+              <div key={index} className="bg-white rounded-2xl p-6 md:p-8 text-center border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-5 text-indigo-600 text-2xl">
+                  <feature.icon size={28} />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-gray-800/70 rounded-2xl p-8 border border-gray-700">
-            <h3 className="text-2xl font-bold text-white mb-6 text-center">
-              Complete Control Center
-            </h3>
-            <p className="text-gray-400 text-center mb-8 max-w-2xl mx-auto">
-              Manage every aspect of your children's digital life with precision and ease
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {controlFeatures.map((feature, index) => (
-                <div key={index} className="flex items-start space-x-3 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
-                  <div className="text-orange-500 mt-1">{feature.icon}</div>
-                  <div>
-                    <h4 className="font-medium text-white">{feature.title}</h4>
-                    <p className="text-sm text-gray-400">{feature.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Compatibility Section */}
-      <section className="py-16 bg-gray-900">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
-            Android Compatibility & Features
-          </h2>
-          <div className="flex justify-center">
-            <div className="bg-gray-800/70 p-8 rounded-2xl border border-gray-700 max-w-2xl w-full">
-              <div className="flex items-center mb-8">
-                <img src="/play-store.png" className='h-10 w-10' alt="Google Play" />
-                <div className="ml-4">
-                  <h3 className="text-xl font-bold text-white">For Android Devices</h3>
-                  <p className="text-gray-400">Android 7.0 and later versions supported</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {compatibilityFeatures.map((feature, index) => (
-                  <div key={index} className="flex items-center p-3 bg-gray-900/50 rounded-lg">
-                    <CheckCircle size={18} className="text-green-500 mr-3" />
-                    <span className="text-gray-300">{feature}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 text-center">
-                <p className="text-gray-400 mb-4">iOS version coming soon</p>
-                <button className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
-                  Download for Android
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Steps Section */}
-      <section id="how-it-works" className="py-16 bg-gradient-to-r from-orange-500/10 to-orange-600/10">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
-            Get Started in 3 Simple Steps
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((step, index) => (
-              <div key={index} className="relative">
-                <div className="bg-gray-800/70 p-8 rounded-2xl border border-gray-700">
-                  <div className="text-6xl font-bold text-orange-500/20 mb-4">{step.step}</div>
-                  <h3 className="text-xl font-bold text-white mb-4">{step.title}</h3>
-                  <p className="text-gray-400">{step.desc}</p>
-                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{feature.title}</h3>
+                <p className="text-gray-500">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-16 bg-gray-900">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Trusted by Parents Worldwide
-            </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              See what parents are saying about Kidzet Parental Control
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-800/70 p-6 rounded-xl border border-gray-700">
-                <div className="flex mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} size={16} className="text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-4 italic">"{testimonial.text}"</p>
-                <div className="font-semibold text-white">{testimonial.name}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center">
-            <button className="inline-flex items-center px-6 py-3 border border-orange-500 text-orange-500 rounded-lg hover:bg-orange-500/10 transition-colors">
-              <MessageCircle className="mr-2" size={20} />
-              Read More Stories
-              <ChevronRight className="ml-2" size={20} />
-            </button>
+      {/* Dashboard Preview Section */}
+      <section className="bg-gradient-to-b from-white to-indigo-50/50 py-16 md:py-20">
+        <div className="text-center px-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Your Command Center</h2>
+          <p className="text-gray-500 text-lg max-w-2xl mx-auto mt-4">Manage all devices, view logs, and change settings from one simple dashboard.</p>
+        </div>
+        <div className="max-w-5xl mx-auto mt-12 px-4">
+          <div className="rounded-2xl shadow-2xl border-8 border-white overflow-hidden bg-gray-100">
+            <img 
+              src="https://placehold.co/1000x550/f4f6ff/4e54c8?text=Kidzet+Parent+Dashboard+UI" 
+              alt="Kidzet Dashboard Interface" 
+              className="w-full h-auto"
+            />
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-16 bg-gradient-to-br from-orange-500 to-orange-600">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Start Protecting Your Family Today
-          </h2>
-          <p className="text-white/90 mb-8 max-w-2xl mx-auto">
-            Join thousands of parents who trust Kidzet for their children's digital safety
-          </p>
+      {/* Download Section - Keep the same */}
+      <section id="download" className="bg-gray-900 text-white py-20 md:py-24 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-90"></div>
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold">Protect Your Child Today</h2>
+          <p className="text-gray-300 text-lg mt-4 mb-8">Join over 2 million parents trusting Kidzet for their family's safety. Download now and start your 3-day free trial.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={() => navigate('/register')}
-              className="px-8 py-3 bg-white text-orange-500 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
-            >
-              <Download className="mr-2" size={20} />
-              Start Free Trial
-            </button>
-            <button 
-              onClick={() => navigate('/login')}
-              className="px-8 py-3 bg-transparent text-white border-2 border-white rounded-lg hover:bg-white/10 transition-colors"
-            >
-              Sign In to Account
-            </button>
+            <a href="#" className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-6 py-3 flex items-center gap-3 hover:bg-white hover:text-gray-900 transition-all group">
+              <FaGooglePlay size={28} />
+              <div className="text-left">
+                <span className="text-xs uppercase tracking-wide">GET IT ON</span>
+                <strong className="block text-lg">Google Play</strong>
+              </div>
+            </a>
+            <a href="#" className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-6 py-3 flex items-center gap-3 hover:bg-white hover:text-gray-900 transition-all group">
+              <FaApple size={28} />
+              <div className="text-left">
+                <span className="text-xs uppercase tracking-wide">Download on the</span>
+                <strong className="block text-lg">App Store</strong>
+              </div>
+            </a>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 border-t border-gray-800 py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <div className="flex items-center space-x-2 mb-6 md:mb-0">
-              {/* <p className='text-3xl font-bold text-white'>Kid<span className="text-3xl font-bold text-orange-500">zet</span></p> */}
-              <img src='/kidzet-sm.png' alt='Kidzet Logo' className='h-10 w-10'/>
+      {/* Pricing Section - Keep as is */}
+      <section className="py-20 md:py-24 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Simple Pricing</h2>
+            <p className="text-gray-500 text-lg mt-4">Choose the plan that fits your family size.</p>
+          </div>
+          <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-8">
+            {pricingPlans.map((plan, index) => (
+              <div key={index} className={`bg-white rounded-2xl p-6 md:p-8 w-full md:w-80 text-center border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl relative ${plan.popular ? 'border-indigo-200 shadow-lg' : 'border-gray-100'}`}>
+                {plan.popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full">MOST POPULAR</span>
+                )}
+                <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
+                <div className="text-4xl font-extrabold text-indigo-600 mt-4">
+                  ${plan.price}<span className="text-base font-medium text-gray-400">/{plan.period}</span>
+                </div>
+                <ul className="mt-6 space-y-3 text-left">
+                  <li className="flex items-center gap-2 text-gray-600">
+                    <span className="text-cyan-500">✓</span> {plan.devices}
+                  </li>
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-gray-600">
+                      <span className="text-cyan-500">✓</span> {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup" className={`mt-8 inline-block w-full py-3 rounded-full font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-md hover:shadow-lg' : 'border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}>
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 md:py-24 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Frequently Asked Questions</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {faqs.map((faq, index) => (
+              <div key={index} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="w-full px-5 py-4 text-left font-semibold text-gray-800 flex justify-between items-center hover:bg-gray-50 transition-colors"
+                >
+                  {faq.question}
+                  <FaChevronDown className={`text-gray-400 transition-transform duration-300 ${openFaqIndex === index ? 'rotate-180' : ''}`} />
+                </button>
+                <div className={`px-5 pb-4 text-gray-500 transition-all duration-300 ${openFaqIndex === index ? 'block' : 'hidden'}`}>
+                  {faq.answer}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer - Update all links to use Link component */}
+      <footer className="bg-gray-900 text-white py-12 md:py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+            <div>
+              <Link to="/" className="text-2xl font-black text-indigo-400 mb-4 inline-block">
+                Kid<span className="text-cyan-400">zet</span>.
+              </Link>
+              <p className="text-gray-400 text-sm">Empowering parents with smart tools to foster healthy digital habits and ensure physical safety.</p>
             </div>
-            <div className="flex space-x-8">
-              {/* <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Terms of Service</a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Support</a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">Contact</a> */}
+            <div>
+              <h4 className="font-bold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><a href="#download" className="hover:text-white transition-colors">Download</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Reviews</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/setup" className="hover:text-white transition-colors">Setup Guide</Link></li>
+                <li><Link to="/help" className="hover:text-white transition-colors">Help Center</Link></li>
+                <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-4">Legal</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+                <li><Link to="/refund" className="hover:text-white transition-colors">Refund Policy</Link></li>
+              </ul>
             </div>
           </div>
-          <div className="text-center text-gray-500 text-sm">
-            <p className="mb-4 max-w-3xl mx-auto">
-              Kidzet Parental Control helps parents monitor and manage children's devices with advanced safety features. 
-              Locate your family members, review device usage, and schedule screen time with professional-grade tools.
-            </p>
-            <div className="mt-8 pt-8 border-t border-gray-800">
-              © {new Date().getFullYear()} Kidzet. All rights reserved.
-            </div>
+          <div className="text-center text-gray-500 text-sm pt-8 mt-8 border-t border-gray-800">
+            <p>&copy; 2023 Kidzet Inc. All rights reserved.</p>
           </div>
         </div>
       </footer>
+
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: scaleY(0);
+            transform-origin: top;
+          }
+          to {
+            opacity: 1;
+            transform: scaleY(1);
+            transform-origin: top;
+          }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

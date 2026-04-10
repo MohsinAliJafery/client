@@ -11,6 +11,10 @@ import PaymentSuccess from './components/PaymentSuccess.jsx';
 import HomePage from './components/HomePage.jsx';
 import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 import TermsConditions from './components/TermsandCondition.jsx';
+import AdminCoupons from './components/AdminCoupons.jsx';
+import Pricing from './components/Pricing.jsx';
+import Features from './components/Features.jsx';
+import Contact from './components/Contact.jsx';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -27,7 +31,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   return children;
 };
-
 
 function App() {
   return (
@@ -47,7 +50,10 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<Register />} />   
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/contact" element={<Contact/>} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-and-condition" element={<TermsConditions />} />
@@ -78,6 +84,16 @@ function App() {
           <ProtectedRoute requiredRole="admin">
             <Layout>
               <AdminDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/adminCoupons" 
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <Layout>
+              <AdminCoupons />
             </Layout>
           </ProtectedRoute>
         } 

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API from '../utils/api';
 import toast from 'react-hot-toast';
-import { ref, get, update } from "firebase/database";
-import { database } from "../firebase";
 import { 
   CheckCircle, 
   CreditCard, 
@@ -19,24 +17,28 @@ import {
   Star,
   CalendarDays,
   Trophy,
-  Gift
+  Gift,
+  Ticket
 } from 'lucide-react';
 
 const Payment = () => {
   const [selectedMethod, setSelectedMethod] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('');
   const [settings, setSettings] = useState({
-    currency: "USD",
-    paypalEnabled: false,
-    plans: {
-      trial_days: { days: 0, price: 0 },
-      weekly_sub: { days: 0, price: 0 },
-      monthly_sub: { days: 0, price: 0 },
-      yearly_sub: { days: 0, price: 0 }
-    }
+    currency: "INR",
+    paypalEnabled: true,
+    paytmEnabled: true,
+    freeTrialDays: 7,
+    weeklyPrice: 0,
+    monthlyPrice: 0,
+    yearlyPrice: 0
   });
   const [loading, setLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [discountedPrice, setDiscountedPrice] = useState(null);
   const paypalButtonRef = useRef(null);
 
   useEffect(() => {
@@ -46,27 +48,27 @@ const Payment = () => {
   const fetchSettings = async () => {
     try {
       setSettingsLoading(true);
-      const snapshot = await get(ref(database, "app_settings"));
+      const response = await API.get('/api/admin/settings');
       
-      if (!snapshot.exists()) {
-        toast.error("App settings not found");
+      if (!response.data.success) {
+        toast.error("Failed to load payment settings");
         return;
       }
 
-      const data = snapshot.val();
+      const data = response.data.data;
+      
       setSettings({
-        currency: data.currency || "USD",
+        currency: data.currency || "INR",
         paypalEnabled: data.paypalEnabled ?? true,
-        plans: {
-          trial_days: data.plans?.trial_days ?? { days: 0, price: 0 },
-          weekly_sub: data.plans?.weekly_sub ?? { days: 0, price: 0 },
-          monthly_sub: data.plans?.monthly_sub ?? { days: 0, price: 0 },
-          yearly_sub: data.plans?.yearly_sub ?? { days: 0, price: 0 }
-        }
+        paytmEnabled: data.paytmEnabled ?? true,
+        freeTrialDays: data.freeTrialDays || 7,
+        weeklyPrice: data.weeklyPrice || 0,
+        monthlyPrice: data.monthlyPrice || 0,
+        yearlyPrice: data.yearlyPrice || 0
       });
     } catch (error) {
-      console.error("Firebase fetch error:", error);
-      toast.error("Failed to load payment settings");
+      console.error("API fetch error:", error);
+      toast.error(error.response?.data?.message || "Failed to load payment settings");
     } finally {
       setSettingsLoading(false);
     }
@@ -74,37 +76,32 @@ const Payment = () => {
 
   const plans = [
     {
-      key: "trial_days",
-      title: "Free Trial",
-      icon: <Gift className="w-8 h-8" />,
-      iconColor: "text-purple-500",
-      features: ["Full access for 3 days", "No commitment required"],
-      ...settings.plans.trial_days
-    },
-    {
-      key: "weekly_sub",
+      key: "weekly",
       title: "Weekly",
       icon: <Calendar className="w-8 h-8" />,
-      iconColor: "text-blue-500",
-      features: ["7 days full access", "Cancel anytime"],
-      ...settings.plans.weekly_sub
+      iconColor: "text-indigo-500",
+      features: ["7 days full access", "Cancel anytime", "Live Camera", "GPS Tracking"],
+      price: settings.weeklyPrice,
+      days: 7
     },
     {
-      key: "monthly_sub",
+      key: "monthly",
       title: "Monthly",
       icon: <CalendarDays className="w-8 h-8" />,
-      iconColor: "text-orange-500",
-      features: ["30 days access", "Best value deal", "Priority support"],
+      iconColor: "text-indigo-600",
+      features: ["30 days access", "Priority support", "Live Camera", "GPS Tracking", "Screen Time"],
       popular: true,
-      ...settings.plans.monthly_sub
+      price: settings.monthlyPrice,
+      days: 30
     },
     {
-      key: "yearly_sub",
+      key: "yearly",
       title: "Yearly",
       icon: <Trophy className="w-8 h-8" />,
-      iconColor: "text-amber-500",
-      features: ["365 days access", "Save 20%", "VIP support"],
-      ...settings.plans.yearly_sub
+      iconColor: "text-indigo-700",
+      features: ["365 days access", "Save 20%", "VIP support", "All features included"],
+      price: settings.yearlyPrice,
+      days: 365
     }
   ];
 
@@ -115,10 +112,64 @@ const Payment = () => {
       icon: <CreditCard className="w-6 h-6" />,
       description: 'Secure payment with PayPal',
       enabled: settings.paypalEnabled,
-      color: "text-blue-500",
-      bgColor: "bg-blue-50"
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50"
     }
   ];
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+    
+    if (!selectedPlan) {
+      toast.error('Please select a plan first');
+      return;
+    }
+    
+    const selectedPlanData = plans.find(p => p.key === selectedPlan);
+    const originalPrice = selectedPlanData.price;
+    
+    if (originalPrice === 0) {
+      toast.error('Coupons cannot be applied to free plans');
+      return;
+    }
+    
+    try {
+      setCouponLoading(true);
+      const response = await API.post('/api/coupons/validate', {
+        code: couponCode,
+        planKey: selectedPlan,
+        amount: originalPrice
+      });
+      
+      const { coupon, discountAmount, finalAmount } = response.data.data;
+      setAppliedCoupon(coupon);
+      setDiscountedPrice({
+        original: originalPrice,
+        discount: discountAmount,
+        final: finalAmount
+      });
+      
+      toast.success(`Coupon applied! You saved ${coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`}`);
+      setCouponCode('');
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      toast.error(error.response?.data?.message || 'Invalid or expired coupon');
+      setAppliedCoupon(null);
+      setDiscountedPrice(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountedPrice(null);
+    setCouponCode('');
+    toast.success('Coupon removed');
+  };
 
   useEffect(() => {
     if (paypalButtonRef.current) {
@@ -137,7 +188,7 @@ const Payment = () => {
     }
 
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}&currency=USD`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}&currency=${settings.currency}`;
     script.addEventListener('load', () => {
       console.log('PayPal SDK loaded successfully');
       if (selectedPlan && selectedMethod === 'paypal') {
@@ -169,9 +220,16 @@ const Payment = () => {
         createOrder: async (data, actions) => {
           try {
             setLoading(true);
-            const response = await API.post('/api/payments/paypal/create-order', {
+            const requestData = {
               subscriptionType: selectedPlan
-            });
+            };
+            
+            if (appliedCoupon) {
+              requestData.couponCode = appliedCoupon.code;
+              requestData.discountedAmount = discountedPrice.final;
+            }
+            
+            const response = await API.post('/api/payments/paypal/create-order', requestData);
             const { orderID } = response.data.data;
             return orderID;
           } catch (error) {
@@ -185,32 +243,62 @@ const Payment = () => {
         onApprove: async (data, actions) => {
           try {
             setLoading(true);
-            await API.post('/api/payments/paypal/capture-order', {
-              orderID: data.orderID
-            });
+
+            const captureData = { orderID: data.orderID };
+
+            if (appliedCoupon) {
+              captureData.couponCode = appliedCoupon.code;
+            }
+
+            await API.post('/api/payments/paypal/capture-order', captureData);
 
             const user = JSON.parse(localStorage.getItem("user"));
-            const uid = user.uid;
-            const days = settings.plans[selectedPlan].days;
+            const token = user.token;
 
-            const parentRef = ref(database, `parents/${uid}`);
-            const snapshot = await get(parentRef);
+            const profileRes = await API.get(
+              "https://serv2.kidzet.com/api/parent/profile",
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            const currentExpiry = Number(
+              profileRes.data?.parent?.subscription_expiry || 0
+            );
+
+            const selectedPlanData = plans.find(p => p.key === selectedPlan);
+            const days = selectedPlanData.days;
             const now = Date.now();
-            const currentExpiry = snapshot.exists() ? snapshot.val()?.subscription?.expiryDate || 0 : 0;
+
             const baseTime = currentExpiry > now ? currentExpiry : now;
             const newExpiryDate = baseTime + days * 24 * 60 * 60 * 1000;
 
-            await update(parentRef, {
-              subscription: { expiryDate: newExpiryDate }
-            });
+            await API.post(
+              "https://serv2.kidzet.com/api/parent/subscription",
+              {
+                expiry_timestamp: newExpiryDate,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
 
             toast.success("Subscription activated successfully!");
+
             setTimeout(() => {
               window.location.href = "/dashboard";
             }, 2000);
+
           } catch (error) {
             console.error(error);
-            toast.error("Payment succeeded but subscription update failed");
+            toast.error(
+              error.response?.data?.message ||
+              "Payment succeeded but subscription update failed"
+            );
           } finally {
             setLoading(false);
           }
@@ -240,133 +328,102 @@ const Payment = () => {
     if (selectedMethod === 'paypal' && window.paypal && selectedPlan) {
       renderPayPalButton();
     }
-  }, [selectedPlan]);
+  }, [selectedPlan, appliedCoupon, discountedPrice]);
 
   if (settingsLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-        <p className="mt-4 text-gray-600">Loading payment settings...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full mb-4">
-            <Crown className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
-            Choose Your Perfect Plan
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+            Choose Your Plan
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Get started with our flexible subscription plans. Cancel anytime.
+          <p className="text-gray-500 text-lg">
+            Flexible pricing tailored to your family's needs
           </p>
-          <div className="flex items-center justify-center mt-6 space-x-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg mr-3">
-                <Shield className="w-5 h-5 text-green-600" />
-              </div>
-              <span className="text-sm text-gray-700">Secure Payment</span>
-            </div>
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                <BadgeCheck className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-sm text-gray-700">Money Back Guarantee</span>
-            </div>
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg mr-3">
-                <Zap className="w-5 h-5 text-purple-600" />
-              </div>
-              <span className="text-sm text-gray-700">Instant Access</span>
-            </div>
-          </div>
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {plans.map(plan => (
             <div
               key={plan.key}
-              onClick={() => setSelectedPlan(plan.key)}
+              onClick={() => {
+                setSelectedPlan(plan.key);
+                setAppliedCoupon(null);
+                setDiscountedPrice(null);
+                setCouponCode('');
+              }}
               className={`
-                relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300
-                border-2 cursor-pointer transform hover:-translate-y-1
+                relative bg-white rounded-xl shadow-sm border-2 cursor-pointer transition-all duration-300
                 ${selectedPlan === plan.key 
-                  ? 'border-orange-500 ring-2 ring-orange-200' 
-                  : 'border-transparent hover:border-gray-200'
+                  ? 'border-indigo-600 shadow-md' 
+                  : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
                 }
-                ${plan.popular ? 'ring-2 ring-orange-500/20' : ''}
               `}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg flex items-center">
-                    <Star className="w-4 h-4 mr-1" />
+                  <div className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
+                    <Star className="w-3 h-3" />
                     MOST POPULAR
                   </div>
                 </div>
               )}
 
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className={`p-3 rounded-xl ${plan.iconColor.replace('text-', 'bg-')} bg-opacity-10`}>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-2 rounded-lg ${plan.iconColor}/10`}>
                     {plan.icon}
                   </div>
                   {selectedPlan === plan.key && (
-                    <CheckCircle className="w-6 h-6 text-green-500" />
+                    <CheckCircle className="w-5 h-5 text-green-500" />
                   )}
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.title}</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-1">{plan.title}</h3>
                 
-                <div className="mb-6">
+                <div className="mb-4">
                   <div className="flex items-baseline">
-                    <span className="text-3xl font-bold text-gray-900">
+                    <span className="text-2xl font-bold text-gray-800">
                       {plan.price === 0 ? 'Free' : `${settings.currency} ${plan.price}`}
                     </span>
                     {plan.price > 0 && (
-                      <span className="text-gray-500 ml-2">/ {plan.title.toLowerCase().replace('ly', '')}</span>
+                      <span className="text-gray-400 text-sm ml-1">/ {plan.title.toLowerCase().replace('ly', '')}</span>
                     )}
                   </div>
-                  <div className="flex items-center text-gray-500 text-sm mt-2">
-                    <Clock className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-gray-400 text-xs mt-1">
+                    <Clock className="w-3 h-3 mr-1" />
                     <span>{plan.days} days access</span>
                   </div>
                 </div>
 
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-2 mb-6">
                   {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <div className="p-1">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                      </div>
-                      <span className="text-gray-600 ml-2">{feature}</span>
+                    <li key={idx} className="flex items-start text-sm">
+                      <CheckCircle className="w-3 h-3 text-indigo-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <span className="text-gray-600">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
                 <button
                   className={`
-                    w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center
+                    w-full py-2.5 rounded-lg font-semibold transition-all duration-300 text-sm
                     ${selectedPlan === plan.key
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }
                   `}
                 >
-                  {selectedPlan === plan.key ? (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Selected
-                    </>
-                  ) : (
-                    'Select Plan'
-                  )}
+                  {selectedPlan === plan.key ? 'Selected' : 'Select Plan'}
                 </button>
               </div>
             </div>
@@ -374,54 +431,50 @@ const Payment = () => {
         </div>
 
         {/* Payment Section */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="md:flex">
             {/* Left Side - Payment Methods */}
-            <div className="md:w-1/2 p-8 md:p-12 border-r border-gray-200">
-              <div className="flex items-center mb-8">
+            <div className="md:w-1/2 p-6 border-r border-gray-100">
+              <div className="flex items-center mb-6">
                 <div className="p-2 bg-gray-100 rounded-lg mr-3">
-                  <Lock className="w-6 h-6 text-gray-600" />
+                  <Lock className="w-5 h-5 text-gray-500" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Secure Payment</h2>
-                  <p className="text-gray-500 text-sm">Choose your preferred payment method</p>
+                  <h2 className="text-xl font-bold text-gray-800">Secure Payment</h2>
+                  <p className="text-gray-400 text-sm">Choose payment method</p>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 mb-6">
                 {paymentMethods.filter(m => m.enabled).map(method => (
                   <div
                     key={method.id}
                     onClick={() => setSelectedMethod(method.id)}
                     className={`
-                      flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300
-                      hover:shadow-md group
+                      flex items-center p-3 rounded-lg border cursor-pointer transition-all
                       ${selectedMethod === method.id
-                        ? 'border-orange-500 bg-orange-50'
+                        ? 'border-indigo-600 bg-indigo-50'
                         : 'border-gray-200 hover:border-gray-300'
                       }
                     `}
                   >
                     <div className={`
-                      w-12 h-12 flex items-center justify-center rounded-lg mr-4 transition-colors
-                      ${selectedMethod === method.id 
-                        ? method.bgColor 
-                        : 'bg-gray-50 group-hover:bg-gray-100'
-                      }
+                      w-10 h-10 flex items-center justify-center rounded-lg mr-3
+                      ${selectedMethod === method.id ? method.bgColor : 'bg-gray-50'}
                     `}>
                       <div className={selectedMethod === method.id ? method.color : 'text-gray-400'}>
                         {method.icon}
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{method.name}</h3>
-                      <p className="text-sm text-gray-500">{method.description}</p>
+                      <h3 className="font-semibold text-gray-800 text-sm">{method.name}</h3>
+                      <p className="text-xs text-gray-400">{method.description}</p>
                     </div>
                     <div className={`
-                      w-6 h-6 rounded-full border-2 flex items-center justify-center
+                      w-5 h-5 rounded-full border-2 flex items-center justify-center
                       ${selectedMethod === method.id
-                        ? 'bg-orange-500 border-orange-500'
-                        : 'border-gray-300 group-hover:border-gray-400'
+                        ? 'bg-indigo-600 border-indigo-600'
+                        : 'border-gray-300'
                       }
                     `}>
                       {selectedMethod === method.id && (
@@ -433,75 +486,124 @@ const Payment = () => {
               </div>
 
               {selectedMethod && selectedPlan && (
-                <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
                   <div className="flex items-start">
-                    <div className="p-2 bg-green-100 rounded-lg mr-3">
-                      <Sparkles className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-1">Ready to proceed</h4>
-                      <p className="text-sm text-gray-600">
-                        You've selected <span className="font-semibold">{plans.find(p => p.key === selectedPlan)?.title}</span> plan
-                        with <span className="font-semibold">{selectedMethod.toUpperCase()}</span>
-                      </p>
-                    </div>
+                    <Sparkles className="w-4 h-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <p className="text-sm text-gray-600">
+                      You've selected <span className="font-semibold">{plans.find(p => p.key === selectedPlan)?.title}</span> plan
+                    </p>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Right Side - Payment Button & Summary */}
-            <div className="md:w-1/2 p-8 md:p-12 bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="md:w-1/2 p-6 bg-gray-50">
               {selectedPlan ? (
                 <>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h3>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h3>
                   
-                  <div className="bg-white rounded-xl p-6 shadow-sm mb-8">
-                    <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center">
-                        <div className="p-2 bg-orange-100 rounded-lg mr-3">
-                          <Gem className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">
-                            {plans.find(p => p.key === selectedPlan)?.title} Plan
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            {plans.find(p => p.key === selectedPlan)?.days} days access
-                          </p>
+                  {/* Coupon Code Section */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      Coupon Code
+                    </label>
+                    {!appliedCoupon ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          placeholder="Enter code"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          disabled={!selectedPlan || plans.find(p => p.key === selectedPlan)?.price === 0}
+                        />
+                        <button
+                          onClick={applyCoupon}
+                          disabled={couponLoading || !selectedPlan || plans.find(p => p.key === selectedPlan)?.price === 0}
+                          className="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                        >
+                          {couponLoading ? '...' : 'Apply'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="flex items-center">
+                              <Ticket className="w-3 h-3 text-purple-600 mr-1" />
+                              <span className="font-semibold text-purple-800 text-sm">{appliedCoupon.code}</span>
+                            </div>
+                            <p className="text-xs text-purple-600 mt-0.5">
+                              {appliedCoupon.discountType === 'percentage' 
+                                ? `${appliedCoupon.discountValue}% OFF` 
+                                : `$${appliedCoupon.discountValue} OFF`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={removeCoupon}
+                            className="text-purple-600 hover:text-purple-800 text-xs font-medium"
+                          >
+                            Remove
+                          </button>
                         </div>
                       </div>
+                    )}
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">
+                          {plans.find(p => p.key === selectedPlan)?.title} Plan
+                        </h4>
+                        <p className="text-xs text-gray-400">
+                          {plans.find(p => p.key === selectedPlan)?.days} days access
+                        </p>
+                      </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">
-                          {plans.find(p => p.key === selectedPlan)?.price === 0 
-                            ? 'Free' 
-                            : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
-                          }
-                        </div>
+                        {discountedPrice ? (
+                          <div>
+                            <span className="line-through text-gray-400 text-sm mr-1">
+                              {settings.currency} {plans.find(p => p.key === selectedPlan)?.price}
+                            </span>
+                            <span className="text-indigo-600 font-bold">
+                              {settings.currency} {discountedPrice.final.toFixed(2)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-gray-800">
+                            {plans.find(p => p.key === selectedPlan)?.price === 0 
+                              ? 'Free' 
+                              : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between py-2">
-                        <span className="text-gray-600">Subtotal</span>
-                        <span className="font-medium">
-                          {plans.find(p => p.key === selectedPlan)?.price === 0 
-                            ? 'Free' 
-                            : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
-                          }
-                        </span>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Subtotal</span>
+                        <span>{settings.currency} {plans.find(p => p.key === selectedPlan)?.price}</span>
                       </div>
-                      <div className="flex justify-between py-2">
-                        <span className="text-gray-600">Tax</span>
-                        <span className="font-medium">Included</span>
-                      </div>
-                      <div className="flex justify-between text-lg font-bold text-gray-900 pt-3 border-t border-gray-200 mt-2">
-                        <span>Total Amount</span>
+                      
+                      {discountedPrice && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Discount</span>
+                          <span>-{settings.currency} {discountedPrice.discount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between pt-2 border-t border-gray-100 font-semibold">
+                        <span>Total</span>
                         <span>
-                          {plans.find(p => p.key === selectedPlan)?.price === 0 
-                            ? 'Free' 
-                            : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
-                          }
+                          {discountedPrice ? (
+                            `${settings.currency} ${discountedPrice.final.toFixed(2)}`
+                          ) : (
+                            plans.find(p => p.key === selectedPlan)?.price === 0 
+                              ? 'Free' 
+                              : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
+                          )}
                         </span>
                       </div>
                     </div>
@@ -510,36 +612,22 @@ const Payment = () => {
                   {/* Payment Buttons */}
                   {selectedMethod === 'paypal' && (
                     <div>
-                      <div className="mb-4">
-                        <div className="flex items-center text-sm text-gray-600 mb-2">
-                          <div className="p-1.5 bg-blue-100 rounded mr-2">
-                            <Shield className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <span>Secure payment by PayPal</span>
-                        </div>
-                        <div ref={paypalButtonRef} className="rounded-lg overflow-hidden"></div>
-                      </div>
+                      <div ref={paypalButtonRef} className="rounded-lg overflow-hidden"></div>
                     </div>
                   )}
 
                   {!selectedMethod && (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CreditCard className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500">Please select a payment method to continue</p>
+                    <div className="text-center py-6">
+                      <CreditCard className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-400 text-sm">Select a payment method</p>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                  <div className="w-16 h-16 bg-gradient-to-r from-orange-100 to-orange-50 rounded-full flex items-center justify-center mb-4">
-                    <Crown className="w-8 h-8 text-orange-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Plan</h3>
-                  <p className="text-gray-500 max-w-sm">
-                    Choose a subscription plan above to proceed with payment
-                  </p>
+                <div className="h-full flex flex-col items-center justify-center text-center py-8">
+                  <Crown className="w-10 h-10 text-indigo-300 mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-600 mb-1">Select a Plan</h3>
+                  <p className="text-gray-400 text-sm">Choose a subscription plan above</p>
                 </div>
               )}
             </div>
@@ -547,14 +635,11 @@ const Payment = () => {
         </div>
 
         {/* Security Footer */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center justify-center space-x-2 text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
-            <Shield className="w-4 h-4" />
-            <span>Your payment is secure and encrypted. We never store your credit card details.</span>
+        <div className="mt-8 text-center">
+          <div className="inline-flex items-center gap-2 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
+            <Shield className="w-3 h-3" />
+            <span>Secure & encrypted payment</span>
           </div>
-          <p className="text-xs text-gray-400 mt-3">
-            By proceeding, you agree to our Terms of Service and Privacy Policy
-          </p>
         </div>
       </div>
     </div>
