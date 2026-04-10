@@ -92,7 +92,7 @@ function App() {
       <Route 
           path="/packages" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="admin">
               <Layout>
                 <Packages />
               </Layout>
