@@ -47,10 +47,10 @@ const Navbar = () => {
           <div className="flex items-center space-x-3 md:space-x-4">
             
             {/* Notification Bell */}
-            <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            {/* <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <Bell size={20} className="text-gray-600" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            </button> */}
 
             {/* User Profile Dropdown */}
             {user ? (

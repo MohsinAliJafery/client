@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, onAuthStateChanged } from "firebase/auth";
 import { ref, set } from "firebase/database";
 import { auth, googleProvider, database } from "../firebase";
 import { FcGoogle } from "react-icons/fc";
@@ -19,12 +19,60 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Helper function to refresh token and update localStorage
+  const refreshAndUpdateToken = async (user) => {
+    if (!user) return null;
+    
+    try {
+      const newToken = await user.getIdToken(true); // Force refresh
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      
+      const updatedUserData = {
+        ...userData,
+        token: newToken,
+        tokenExpiry: Date.now() + 55 * 60 * 1000 // Set expiry to 55 minutes from now
+      };
+      
+      localStorage.setItem("user", JSON.stringify(updatedUserData));
+      return newToken;
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      return null;
+    }
+  };
+
+  // Set up token refresh interval
+  useEffect(() => {
+    // Check for existing user and set up auto-refresh
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Initial token setup
+        await refreshAndUpdateToken(user);
+        
+        // Set up interval to refresh token every 50 minutes (before 1-hour expiry)
+        const intervalId = setInterval(async () => {
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            await refreshAndUpdateToken(currentUser);
+            console.log("Token refreshed automatically");
+          }
+        }, 50 * 60 * 1000); // 50 minutes
+        
+        // Cleanup interval on unmount
+        return () => clearInterval(intervalId);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
+      // Get fresh token
       const idToken = await user.getIdToken();
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/sync`, {
@@ -52,6 +100,7 @@ const Login = () => {
         photoURL: user.photoURL,
         subscription: "free_trial",
         token: idToken,
+        tokenExpiry: Date.now() + 55 * 60 * 1000, // Store expiry time
         role: data.user?.role || "user",
       };
 
@@ -71,7 +120,6 @@ const Login = () => {
 
       console.log("API Response:", vps_response.data);
 
-      // const redirectPath = userData.role === 'admin' ? '/admin' : '/dashboard';
       const redirectPath = '/dashboard';
       navigate(redirectPath);
       
@@ -156,7 +204,6 @@ const Login = () => {
           <div className="flex-1 max-w-md mx-auto lg:mx-0 w-full">
             <div className="bg-white rounded-2xl p-8 shadow-2xl">
               <div className="text-center mb-8">
-               
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Get Started</h2>
                 <p className="text-gray-500">Sign in with your Google account</p>
               </div>

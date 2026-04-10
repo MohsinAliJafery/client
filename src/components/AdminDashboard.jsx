@@ -173,9 +173,9 @@ const AdminDashboard = () => {
   const subscriptionStats = getSubscriptionStats();
 
   if (loading) {
-    return (
+        return (
       <div className="flex flex-col items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -220,7 +220,7 @@ const AdminDashboard = () => {
           {[
             { id: 'users', label: 'Users', icon: <Users size={16} /> },
             { id: 'transactions', label: 'Transactions', icon: <Banknote size={16} /> },
-            { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
+            // { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
           ].map((tab) => (
             <button
               key={tab.id}

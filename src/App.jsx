@@ -15,6 +15,7 @@ import AdminCoupons from './components/AdminCoupons.jsx';
 import Pricing from './components/Pricing.jsx';
 import Features from './components/Features.jsx';
 import Contact from './components/Contact.jsx';
+import Packages from './components/Packages.jsx';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -88,6 +89,16 @@ function App() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+          path="/packages" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Packages />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
       <Route 
         path="/adminCoupons" 
         element={

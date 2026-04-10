@@ -17,7 +17,8 @@ import {
   MapPin,
   Video,
   Clock,
-  Shield
+  Shield,
+  Package
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -50,6 +51,11 @@ const Sidebar = () => {
       title: 'Payments',
       icon: <Banknote size={20} />,
       path: '/payment',
+    },
+     {
+      title: 'Packages',
+      icon: <Package size={20} />,
+      path: '/packages',
     },
     {
       title: 'Coupons',
