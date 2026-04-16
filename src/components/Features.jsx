@@ -6,6 +6,7 @@ import {
   FaChartPie, FaHourglassEnd, FaBan, FaImages, 
   FaCommentDots, FaPhoneVolume, FaShieldHalved, FaUserSecret
 } from 'react-icons/fa6';
+import WebNavbar from './WebNavbar';
 
 const Features = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -76,42 +77,7 @@ const Features = () => {
   return (
     <div className="font-['Inter',system-ui,sans-serif] text-gray-800 bg-white overflow-x-hidden">
       {/* Header / Navigation */}
-      <header className="fixed top-0 w-full bg-white/98 backdrop-blur-md shadow-sm z-50">
-        <nav className="max-w-6xl mx-auto flex justify-between items-center px-4 md:px-8 py-4">
-          <Link to="/" className="text-2xl md:text-3xl font-black text-indigo-600 tracking-tight">
-            Kid<span className="text-cyan-500">zet</span>.
-          </Link>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/features" className="text-indigo-600 font-medium transition-colors">Features</Link>
-            <Link to="/pricing" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Pricing</Link>
-            <Link to="/" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Setup & Helps</Link>
-            <Link to="/contact" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Contact</Link>
-          </div>
-          
-            <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-5 py-2 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all">Log In</Link>
-
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-gray-700 text-2xl"
-          >
-            {mobileMenuOpen ? <FaBars /> : <FaBars />}
-          </button>
-        </nav>
-        
-        {/* Mobile Navigation Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100 shadow-lg py-4 px-6 flex flex-col gap-3 animate-slideDown">
-            <Link to="/features" className="text-indigo-600 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Features</Link>
-            <Link to="/pricing" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
-            <Link to="/setup" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Setup & Helps</Link>
-            <Link to="/contact" className="text-gray-700 font-semibold py-2 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
-            <Link to="/login" className="text-indigo-600 font-bold py-2">Log In</Link>
-          </div>
-        )}
-      </header>
+      <WebNavbar />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-400 pt-32 pb-20 md:pt-36 md:pb-24 px-4 relative">
