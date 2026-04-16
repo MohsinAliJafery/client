@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { signInWithPopup, onAuthStateChanged } from "firebase/auth";
 import { ref, set } from "firebase/database";
@@ -16,21 +16,32 @@ import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Get URL parameters
+  const getRedirectParams = () => {
+    const params = new URLSearchParams(location.search);
+    return {
+      redirect: params.get('redirect'),
+      planId: params.get('planId'),
+      planName: params.get('planName')
+    };
+  };
 
   // Helper function to refresh token and update localStorage
   const refreshAndUpdateToken = async (user) => {
     if (!user) return null;
     
     try {
-      const newToken = await user.getIdToken(true); // Force refresh
+      const newToken = await user.getIdToken(true);
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       
       const updatedUserData = {
         ...userData,
         token: newToken,
-        tokenExpiry: Date.now() + 55 * 60 * 1000 // Set expiry to 55 minutes from now
+        tokenExpiry: Date.now() + 55 * 60 * 1000 
       };
       
       localStorage.setItem("user", JSON.stringify(updatedUserData));
@@ -43,22 +54,18 @@ const Login = () => {
 
   // Set up token refresh interval
   useEffect(() => {
-    // Check for existing user and set up auto-refresh
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Initial token setup
         await refreshAndUpdateToken(user);
         
-        // Set up interval to refresh token every 50 minutes (before 1-hour expiry)
         const intervalId = setInterval(async () => {
           const currentUser = auth.currentUser;
           if (currentUser) {
             await refreshAndUpdateToken(currentUser);
             console.log("Token refreshed automatically");
           }
-        }, 50 * 60 * 1000); // 50 minutes
+        }, 50 * 60 * 1000);
         
-        // Cleanup interval on unmount
         return () => clearInterval(intervalId);
       }
     });
@@ -100,7 +107,7 @@ const Login = () => {
         photoURL: user.photoURL,
         subscription: "free_trial",
         token: idToken,
-        tokenExpiry: Date.now() + 55 * 60 * 1000, // Store expiry time
+        tokenExpiry: Date.now() + 55 * 60 * 1000,
         role: data.user?.role || "user",
       };
 
@@ -120,7 +127,25 @@ const Login = () => {
 
       console.log("API Response:", vps_response.data);
 
-      const redirectPath = '/dashboard';
+      // Get redirect parameters
+      const { redirect, planId, planName } = getRedirectParams();
+      
+      // Determine where to redirect after login
+      let redirectPath = '/dashboard'; // Default redirect
+      
+      if (redirect === 'plans' && planId) {
+        // User came from plans page and selected a plan
+        redirectPath = `/payment?plan=${planId}`;
+        toast.success(`Proceeding to payment for ${planName || 'selected plan'}`);
+      } else if (redirect === 'plans') {
+        // Came from plans but no specific plan selected
+        redirectPath = '/pricing';
+      } else {
+        // Check if user was trying to access a specific page before login
+        const from = location.state?.from || '/dashboard';
+        redirectPath = from;
+      }
+      
       navigate(redirectPath);
       
     } catch (error) {
@@ -154,9 +179,8 @@ const Login = () => {
             <Link to="/contact" className="text-gray-700 font-medium hover:text-indigo-600 transition-colors">Contact</Link>
           </div>
 
-            <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-5 py-2 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all">Log In</Link>
+          <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-5 py-2 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all">Log In</Link>
 
-          
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden text-gray-700 text-2xl"
@@ -243,24 +267,6 @@ const Login = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Trust Badges */}
-              {/* <div className="mt-8 pt-6 border-t border-gray-100">
-                <div className="flex justify-center gap-6">
-                  <div className="text-center">
-                    <div className="text-indigo-600 font-bold text-xl">2M+</div>
-                    <div className="text-gray-500 text-xs">Parents Trust Us</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-indigo-600 font-bold text-xl">4.8</div>
-                    <div className="text-gray-500 text-xs">App Store Rating</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-indigo-600 font-bold text-xl">24/7</div>
-                    <div className="text-gray-500 text-xs">Support</div>
-                  </div>
-                </div>
-              </div> */}
 
               <br /><br />
             </div>

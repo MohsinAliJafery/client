@@ -1,4 +1,6 @@
+// Payment.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import API from '../utils/api';
 import toast from 'react-hot-toast';
 import { 
@@ -6,60 +8,25 @@ import {
   CreditCard, 
   Shield, 
   Lock, 
-  Calendar,
   Crown,
   Sparkles,
-  Clock,
-  Star,
-  Trophy,
   Ticket,
+  ArrowLeft,
+  Wallet,
   Smartphone,
-  Wifi,
-  MapPin,
-  Video,
-  Headphones,
-  Gift
+  Calendar,
+  Clock,
+  Users
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
-// Icon mapping
-const iconComponents = {
-  Crown: <Crown className="w-8 h-8" />,
-  Trophy: <Trophy className="w-8 h-8" />,
-  Calendar: <Calendar className="w-8 h-8" />,
-  Star: <Star className="w-8 h-8" />,
-  Gift: <Gift className="w-8 h-8" />,
-  Smartphone: <Smartphone className="w-8 h-8" />,
-  Wifi: <Wifi className="w-8 h-8" />,
-  MapPin: <MapPin className="w-8 h-8" />,
-  Video: <Video className="w-8 h-8" />,
-  Headphones: <Headphones className="w-8 h-8" />
-};
-
-const getIcon = (iconName) => {
-  return iconComponents[iconName] || <Crown className="w-8 h-8" />;
-};
-
-const getIconColor = (index) => {
-  const colors = [
-    "text-indigo-500",
-    "text-indigo-600",
-    "text-indigo-700",
-    "text-purple-500",
-    "text-blue-500",
-    "text-cyan-500"
-  ];
-  return colors[index % colors.length];
-};
+import Plans from '../components/Plans';
 
 const Payment = () => {
-  const [selectedMethod, setSelectedMethod] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('');
-  const [packages, setPackages] = useState([]);
+  const [searchParams] = useSearchParams();
+  const [selectedMethod, setSelectedMethod] = useState('paypal'); // Default to paypal
+  const [selectedPlan, setSelectedPlan] = useState(searchParams.get('plan') || '');
   const [settings, setSettings] = useState({
     currency: "USD",
     paypalEnabled: true,
-    paytmEnabled: true,
     freeTrialDays: 7
   });
   const [loading, setLoading] = useState(false);
@@ -68,6 +35,8 @@ const Payment = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [discountedPrice, setDiscountedPrice] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [paymentStep, setPaymentStep] = useState(1); // 1: Select Plan, 2: Payment
   const paypalButtonRef = useRef(null);
 
   const navigate = useNavigate();
@@ -79,18 +48,13 @@ const Payment = () => {
   const fetchData = async () => {
     try {
       setSettingsLoading(true);
-      
-      // Fetch packages and settings in parallel
-      const [packagesRes, settingsRes] = await Promise.all([
-        API.get('/api/packages/public'),
-      ]);
+      const packagesRes = await API.get('/api/packages/public');
       
       if (packagesRes.data.success) {
-        setPackages(packagesRes.data.data);
+        setPlans(packagesRes.data.data);
       } else {
         toast.error("Failed to load packages");
       }
-      
     } catch (error) {
       console.error("API fetch error:", error);
     } finally {
@@ -98,28 +62,24 @@ const Payment = () => {
     }
   };
 
-  // Build plans array from packages
-  const plans = packages.map((pkg, index) => ({
-    key: pkg._id,
-    id: pkg._id,
-    title: pkg.name,
-    description: pkg.description,
-    icon: getIcon(pkg.icon),
-    iconColor: getIconColor(index),
-    features: pkg.features || [],
-    price: pkg.price,
-    days: pkg.days,
-    devices: pkg.devices,
-    popular: pkg.popular,
-    order: pkg.order
-  })).sort((a, b) => a.order - b.order);
+  const handlePlanSelect = (plan) => {
+    setSelectedPlan(plan.key);
+    setAppliedCoupon(null);
+    setDiscountedPrice(null);
+    setCouponCode('');
+    setPaymentStep(2);
+  };
+
+  const getSelectedPlanData = () => {
+    return plans.find(p => p._id === selectedPlan);
+  };
 
   const paymentMethods = [
     {
       id: 'paypal',
       name: 'PayPal',
-      icon: <CreditCard className="w-6 h-6" />,
-      description: 'Secure payment with PayPal',
+      icon: <CreditCard className="w-5 h-5" />,
+      description: 'Pay securely with PayPal',
       enabled: settings.paypalEnabled,
       color: "text-indigo-600",
       bgColor: "bg-indigo-50"
@@ -137,7 +97,7 @@ const Payment = () => {
       return;
     }
     
-    const selectedPlanData = plans.find(p => p.key === selectedPlan);
+    const selectedPlanData = getSelectedPlanData();
     const originalPrice = selectedPlanData.price;
     
     if (originalPrice === 0) {
@@ -181,14 +141,14 @@ const Payment = () => {
   };
 
   useEffect(() => {
-    if (paypalButtonRef.current) {
-      paypalButtonRef.current.innerHTML = '';
+    if (selectedMethod === 'paypal' && selectedPlan && paymentStep === 2) {
+      if (!window.paypal) {
+        loadPayPalScript();
+      } else {
+        renderPayPalButton();
+      }
     }
-
-    if (selectedMethod === 'paypal' && !window.paypal) {
-      loadPayPalScript();
-    }
-  }, [selectedMethod]);
+  }, [selectedMethod, selectedPlan, paymentStep, appliedCoupon, discountedPrice]);
 
   const loadPayPalScript = () => {
     const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
@@ -200,7 +160,7 @@ const Payment = () => {
     script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}&currency=${settings.currency}`;
     script.addEventListener('load', () => {
       console.log('PayPal SDK loaded successfully');
-      if (selectedPlan && selectedMethod === 'paypal') {
+      if (selectedPlan && selectedMethod === 'paypal' && paymentStep === 2) {
         renderPayPalButton();
       }
     });
@@ -224,7 +184,8 @@ const Payment = () => {
           layout: 'vertical',
           color: 'blue',
           shape: 'rect',
-          label: 'paypal'
+          label: 'paypal',
+          height: 45
         },
         createOrder: async (data, actions) => {
           try {
@@ -252,6 +213,7 @@ const Payment = () => {
         onApprove: async (data, actions) => {
           try {
             setLoading(true);
+            toast.loading('Processing payment...', { duration: 2000 });
 
             const captureData = { orderID: data.orderID };
 
@@ -277,16 +239,12 @@ const Payment = () => {
               profileRes.data?.parent?.subscription_expiry || 0
             );
 
-            console.log("Current Expiry", currentExpiry);
-
-            const selectedPlanData = plans.find(p => p.key === selectedPlan);
+            const selectedPlanData = getSelectedPlanData();
             const days = selectedPlanData.days;
             const now = Date.now();
 
             const baseTime = currentExpiry > now ? currentExpiry : now;
             const newExpiryDate = baseTime + days * 24 * 60 * 60 * 1000;
-
-            console.log("New Expiry", newExpiryDate);
 
             await API.post(
               "https://serv2.kidzet.com/api/parent/subscription",
@@ -300,14 +258,16 @@ const Payment = () => {
               }
             );
 
-            toast.success("Subscription activated successfully!");
+            toast.dismiss();
+            toast.success("Payment successful! Subscription activated!");
 
             setTimeout(() => {
-  navigate('/dashboard');
-}, 1000);
+              navigate('/dashboard');
+            }, 2000);
 
           } catch (error) {
             console.error(error);
+            toast.dismiss();
             toast.error(
               error.response?.data?.message ||
               "Payment succeeded but subscription update failed"
@@ -337,243 +297,246 @@ const Payment = () => {
     }
   };
 
-  useEffect(() => {
-    if (selectedMethod === 'paypal' && window.paypal && selectedPlan) {
-      renderPayPalButton();
-    }
-  }, [selectedPlan, appliedCoupon, discountedPrice]);
+  const goBackToPlans = () => {
+    setPaymentStep(1);
+    setSelectedMethod('paypal');
+  };
 
   if (settingsLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-white">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-600"></div>
+        <p className="mt-4 text-gray-500">Loading payment options...</p>
       </div>
     );
   }
 
   return (
-    <div className="pb-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 text-center">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-600 to-cyan-500 rounded-2xl shadow-lg mb-4">
+            <Crown className="w-8 h-8 text-white" />
+          </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
-            Choose Your Plan
+            Secure Checkout
           </h1>
           <p className="text-gray-500 text-lg">
-            Flexible pricing tailored to your family's needs
+            Complete your purchase to protect your family
           </p>
         </div>
 
-        {/* Plans Grid - Dynamic based on packages */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {plans.map(plan => (
-            <div
-              key={plan.key}
-              onClick={() => {
-                setSelectedPlan(plan.key);
-                setAppliedCoupon(null);
-                setDiscountedPrice(null);
-                setCouponCode('');
-              }}
-              className={`
-                relative bg-white rounded-xl shadow-sm border-2 cursor-pointer transition-all duration-300
-                ${selectedPlan === plan.key 
-                  ? 'border-indigo-600 shadow-md' 
-                  : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
-                }
-              `}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
-                    <Star className="w-3 h-3" />
-                    MOST POPULAR
-                  </div>
-                </div>
-              )}
-
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-2 rounded-lg ${plan.iconColor}/10`}>
-                    {plan.icon}
-                  </div>
-                  {selectedPlan === plan.key && (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  )}
-                </div>
-
-                <h3 className="text-lg font-bold text-gray-800 mb-1">{plan.title}</h3>
-                {plan.description && (
-                  <p className="text-xs text-gray-400 mb-3">{plan.description}</p>
-                )}
-                
-                <div className="mb-4">
-                  <div className="flex items-baseline">
-                    <span className="text-2xl font-bold text-gray-800">
-                      {plan.price === 0 ? 'Free' : `${settings.currency} ${plan.price}`}
-                    </span>
-                    {plan.price > 0 && (
-                      <span className="text-gray-400 text-sm ml-1">/ {plan.days} days</span>
-                    )}
-                  </div>
-                  <div className="flex items-center text-gray-400 text-xs mt-1">
-                    <Clock className="w-3 h-3 mr-1" />
-                    <span>{plan.days} days access</span>
-                  </div>
-                  {plan.devices > 0 && (
-                    <div className="flex items-center text-gray-400 text-xs mt-1">
-                      <Smartphone className="w-3 h-3 mr-1" />
-                      <span>Up to {plan.devices} {plan.devices === 1 ? 'device' : 'devices'}</span>
-                    </div>
-                  )}
-                </div>
-
-                <ul className="space-y-2 mb-6">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start text-sm">
-                      <CheckCircle className="w-3 h-3 text-indigo-500 mt-0.5 mr-2 flex-shrink-0" />
-                      <span className="text-gray-600">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  className={`
-                    w-full py-2.5 rounded-lg font-semibold transition-all duration-300 text-sm
-                    ${selectedPlan === plan.key
-                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {selectedPlan === plan.key ? 'Selected' : 'Select Plan'}
-                </button>
+        {/* Progress Steps */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="flex items-center justify-between">
+            <div className={`flex-1 flex items-center ${paymentStep >= 1 ? 'text-indigo-600' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${paymentStep >= 1 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                1
+              </div>
+              <div className={`flex-1 h-1 mx-2 ${paymentStep >= 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
+            </div>
+            <div className={`flex-1 flex items-center ${paymentStep >= 2 ? 'text-indigo-600' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${paymentStep >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                2
               </div>
             </div>
-          ))}
+          </div>
+          <div className="flex justify-between mt-2 px-4">
+            <span className="text-sm font-medium">Select Plan</span>
+            <span className="text-sm font-medium">Payment</span>
+          </div>
         </div>
 
-        {packages.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-xl">
-            <Crown className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-600">No packages available</h3>
-            <p className="text-sm text-gray-400 mt-1">Please check back later</p>
+        {paymentStep === 1 ? (
+          // Step 1: Select Plan
+          <div className="animate-fadeIn">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-800">Choose Your Plan</h2>
+              <p className="text-gray-500 mt-2">Select the perfect plan for your family</p>
+            </div>
+            <Plans 
+              onSelectPlan={handlePlanSelect}
+              selectedPlanId={selectedPlan}
+              showSelectButton={true}
+              currency={settings.currency}
+              columns={3}
+              navigateOnSelect={true}
+              className="mb-8"
+            />
           </div>
-        )}
+        ) : (
+          // Step 2: Payment
+          <div className="animate-slideUp">
+            {/* Back Button */}
+            <button
+              onClick={goBackToPlans}
+              className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors mb-6 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="text-sm font-medium">Back to Plans</span>
+            </button>
 
-        {/* Payment Section */}
-        {packages.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="md:flex">
-              {/* Left Side - Payment Methods */}
-              <div className="md:w-1/2 p-6 border-r border-gray-100">
-                <div className="flex items-center mb-6">
-                  <div className="p-2 bg-gray-100 rounded-lg mr-3">
-                    <Lock className="w-5 h-5 text-gray-500" />
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Selected Plan Summary - Left Column */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-8">
+                  <div className="bg-gradient-to-r from-indigo-600 to-cyan-500 p-6 text-white">
+                    <h3 className="text-lg font-semibold mb-2">Your Selection</h3>
+                    <p className="text-indigo-100 text-sm">Review your plan details</p>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-800">Secure Payment</h2>
-                    <p className="text-gray-400 text-sm">Choose payment method</p>
-                  </div>
-                </div>
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h4 className="text-xl font-bold text-gray-800">{getSelectedPlanData()?.name}</h4>
+                        <p className="text-gray-500 text-sm mt-1">{getSelectedPlanData()?.description}</p>
+                      </div>
+                      {getSelectedPlanData()?.popular && (
+                        <span className="bg-indigo-100 text-indigo-600 text-xs font-semibold px-2 py-1 rounded-full">
+                          Popular
+                        </span>
+                      )}
+                    </div>
 
-                <div className="space-y-3 mb-6">
-                  {paymentMethods.filter(m => m.enabled).map(method => (
-                    <div
-                      key={method.id}
-                      onClick={() => setSelectedMethod(method.id)}
-                      className={`
-                        flex items-center p-3 rounded-lg border cursor-pointer transition-all
-                        ${selectedMethod === method.id
-                          ? 'border-indigo-600 bg-indigo-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                        }
-                      `}
-                    >
-                      <div className={`
-                        w-10 h-10 flex items-center justify-center rounded-lg mr-3
-                        ${selectedMethod === method.id ? method.bgColor : 'bg-gray-50'}
-                      `}>
-                        <div className={selectedMethod === method.id ? method.color : 'text-gray-400'}>
-                          {method.icon}
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <Clock className="w-4 h-4 text-indigo-500" />
+                        <span className="text-sm">{getSelectedPlanData()?.days} days access</span>
+                      </div>
+                      {getSelectedPlanData()?.devices > 0 && (
+                        <div className="flex items-center gap-3 text-gray-600">
+                          <Smartphone className="w-4 h-4 text-indigo-500" />
+                          <span className="text-sm">Up to {getSelectedPlanData()?.devices} devices</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-4">
+                      <div className="flex justify-between items-start">
+                        <span className="text-gray-600">Total</span>
+                        <div className="text-right">
+                          {discountedPrice ? (
+                            <>
+                              <span className="line-through text-gray-400 text-sm block">
+                                {settings.currency} {getSelectedPlanData()?.price}
+                              </span>
+                              <span className="text-2xl font-bold text-indigo-600">
+                                {settings.currency} {discountedPrice.final.toFixed(2)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold text-indigo-600">
+                              {getSelectedPlanData()?.price === 0 ? 'Free' : `${settings.currency} ${getSelectedPlanData()?.price}`}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 text-sm">{method.name}</h3>
-                        <p className="text-xs text-gray-400">{method.description}</p>
-                      </div>
-                      <div className={`
-                        w-5 h-5 rounded-full border-2 flex items-center justify-center
-                        ${selectedMethod === method.id
-                          ? 'bg-indigo-600 border-indigo-600'
-                          : 'border-gray-300'
-                        }
-                      `}>
-                        {selectedMethod === method.id && (
-                          <CheckCircle className="w-3 h-3 text-white" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {selectedMethod && selectedPlan && (
-                  <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
-                    <div className="flex items-start">
-                      <Sparkles className="w-4 h-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                      <p className="text-sm text-gray-600">
-                        You've selected <span className="font-semibold">{plans.find(p => p.key === selectedPlan)?.title}</span> plan
-                      </p>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Right Side - Payment Button & Summary */}
-              <div className="md:w-1/2 p-6 bg-gray-50">
-                {selectedPlan ? (
-                  <>
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h3>
-                    
-                    {/* Coupon Code Section */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-600 mb-1">
-                        Coupon Code
-                      </label>
+              {/* Payment Section - Right Column */}
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="p-6 md:p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-indigo-50 rounded-xl">
+                        <Lock className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-800">Secure Payment</h2>
+                        <p className="text-gray-500 text-sm">Your information is encrypted and secure</p>
+                      </div>
+                    </div>
+
+                    {/* Payment Methods */}
+                    <div className="mb-8">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Method</h3>
+                      <div className="space-y-3">
+                        {paymentMethods.filter(m => m.enabled).map(method => (
+                          <div
+                            key={method.id}
+                            onClick={() => setSelectedMethod(method.id)}
+                            className={`
+                              flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all
+                              ${selectedMethod === method.id
+                                ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
+                                : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
+                              }
+                            `}
+                          >
+                            <div className={`
+                              w-12 h-12 flex items-center justify-center rounded-xl mr-4
+                              ${selectedMethod === method.id ? method.bgColor : 'bg-gray-100'}
+                            `}>
+                              <div className={selectedMethod === method.id ? method.color : 'text-gray-500'}>
+                                {method.icon}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-800">{method.name}</h3>
+                              <p className="text-xs text-gray-500">{method.description}</p>
+                            </div>
+                            <div className={`
+                              w-5 h-5 rounded-full border-2 flex items-center justify-center
+                              ${selectedMethod === method.id
+                                ? 'bg-indigo-600 border-indigo-600'
+                                : 'border-gray-300'
+                              }
+                            `}>
+                              {selectedMethod === method.id && (
+                                <CheckCircle className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Coupon Section */}
+                    <div className="mb-8">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Coupon Code</h3>
                       {!appliedCoupon ? (
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           <input
                             type="text"
                             value={couponCode}
                             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                            placeholder="Enter code"
-                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                            disabled={!selectedPlan || plans.find(p => p.key === selectedPlan)?.price === 0}
+                            placeholder="Enter coupon code"
+                            className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            disabled={!selectedPlan || getSelectedPlanData()?.price === 0}
                           />
                           <button
                             onClick={applyCoupon}
-                            disabled={couponLoading || !selectedPlan || plans.find(p => p.key === selectedPlan)?.price === 0}
-                            className="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                            disabled={couponLoading || !selectedPlan || getSelectedPlanData()?.price === 0}
+                            className="px-6 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {couponLoading ? '...' : 'Apply'}
+                            {couponLoading ? 'Applying...' : 'Apply'}
                           </button>
                         </div>
                       ) : (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
                           <div className="flex justify-between items-center">
-                            <div>
-                              <div className="flex items-center">
-                                <Ticket className="w-3 h-3 text-purple-600 mr-1" />
-                                <span className="font-semibold text-purple-800 text-sm">{appliedCoupon.code}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <Ticket className="w-5 h-5 text-purple-600" />
                               </div>
-                              <p className="text-xs text-purple-600 mt-0.5">
-                                {appliedCoupon.discountType === 'percentage' 
-                                  ? `${appliedCoupon.discountValue}% OFF` 
-                                  : `${settings.currency}${appliedCoupon.discountValue} OFF`}
-                              </p>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-purple-800">{appliedCoupon.code}</span>
+                                  <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full">
+                                    {appliedCoupon.discountType === 'percentage' 
+                                      ? `${appliedCoupon.discountValue}% OFF` 
+                                      : `${settings.currency}${appliedCoupon.discountValue} OFF`}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-purple-600 mt-0.5">Coupon applied successfully!</p>
+                              </div>
                             </div>
                             <button
                               onClick={removeCoupon}
-                              className="text-purple-600 hover:text-purple-800 text-xs font-medium"
+                              className="text-purple-600 hover:text-purple-800 text-sm font-medium transition-colors"
                             >
                               Remove
                             </button>
@@ -581,99 +544,71 @@ const Payment = () => {
                         </div>
                       )}
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
-                      <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
-                        <div>
-                          <h4 className="font-semibold text-gray-800">
-                            {plans.find(p => p.key === selectedPlan)?.title} Plan
-                          </h4>
-                          <p className="text-xs text-gray-400">
-                            {plans.find(p => p.key === selectedPlan)?.days} days access
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          {discountedPrice ? (
-                            <div>
-                              <span className="line-through text-gray-400 text-sm mr-1">
-                                {settings.currency} {plans.find(p => p.key === selectedPlan)?.price}
-                              </span>
-                              <span className="text-indigo-600 font-bold">
-                                {settings.currency} {discountedPrice.final.toFixed(2)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="font-bold text-gray-800">
-                              {plans.find(p => p.key === selectedPlan)?.price === 0 
-                                ? 'Free' 
-                                : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`}
-                            </span>
-                          )}
+
+                    {/* PayPal Button */}
+                    {selectedMethod === 'paypal' && (
+                      <div className="pt-4">
+                        <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                            <Shield className="w-4 h-4 text-green-600" />
+                            <span>PayPal protects your financial information</span>
+                          </div>
+                          <div ref={paypalButtonRef} className="rounded-lg overflow-hidden"></div>
                         </div>
                       </div>
+                    )}
 
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Subtotal</span>
-                          <span>{settings.currency} {plans.find(p => p.key === selectedPlan)?.price}</span>
+                    {/* Security Footer */}
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                      <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          <span>256-bit SSL Secure</span>
                         </div>
-                        
-                        {discountedPrice && (
-                          <div className="flex justify-between text-green-600">
-                            <span>Discount</span>
-                            <span>-{settings.currency} {discountedPrice.discount.toFixed(2)}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between pt-2 border-t border-gray-100 font-semibold">
-                          <span>Total</span>
-                          <span>
-                            {discountedPrice ? (
-                              `${settings.currency} ${discountedPrice.final.toFixed(2)}`
-                            ) : (
-                              plans.find(p => p.key === selectedPlan)?.price === 0 
-                                ? 'Free' 
-                                : `${settings.currency} ${plans.find(p => p.key === selectedPlan)?.price}`
-                            )}
-                          </span>
+                        <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                        <div className="flex items-center gap-1">
+                          <Lock className="w-3 h-3" />
+                          <span>PCI Compliant</span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Payment Buttons */}
-                    {selectedMethod === 'paypal' && (
-                      <div>
-                        <div ref={paypalButtonRef} className="rounded-lg overflow-hidden"></div>
-                      </div>
-                    )}
-
-                    {!selectedMethod && (
-                      <div className="text-center py-6">
-                        <CreditCard className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-400 text-sm">Select a payment method</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center py-8">
-                    <Crown className="w-10 h-10 text-indigo-300 mb-3" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-1">Select a Plan</h3>
-                    <p className="text-gray-400 text-sm">Choose a subscription plan above</p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
         )}
-
-        {/* Security Footer */}
-        <div className="mt-8 text-center">
-          <div className="inline-flex items-center gap-2 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
-            <Shield className="w-3 h-3" />
-            <span>Secure & encrypted payment</span>
-          </div>
-        </div>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out;
+        }
+        
+        .animate-slideUp {
+          animation: slideUp 0.5s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

@@ -48,7 +48,7 @@ const Sidebar = () => {
     //   path: '/screen-time',
     // },
     {
-      title: 'Payments',
+      title: 'Plans & Payments',
       icon: <Banknote size={20} />,
       path: '/payment',
     },

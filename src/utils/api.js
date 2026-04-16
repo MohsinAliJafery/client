@@ -6,7 +6,7 @@ const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
 });
 
-setupTokenInterceptor(API);
+// setupTokenInterceptor(API);
 
 // Add a request interceptor
 API.interceptors.request.use(

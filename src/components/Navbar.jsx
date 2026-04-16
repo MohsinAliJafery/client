@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Search, Menu, ChevronDown, User, Settings, LogOut, Shield } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
@@ -15,10 +17,18 @@ const Navbar = () => {
     }
   }, []);
 
-  const handleLogout = () => {
+    const handleLogout = async () => {
+  try {
+    await signOut(auth);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    sessionStorage.clear();
+
     navigate('/login');
-  };
+  } catch (error) {
+    console.error("Logout error:", error);
+  }
+};
 
   return (
     <nav className="bg-white/98 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-40">

@@ -4,6 +4,7 @@ import {
   FaGooglePlay, FaApple, FaChevronDown, FaBars, FaTimes,
   FaCheck, FaTimes as FaTimesIcon
 } from 'react-icons/fa';
+import Plans from './Plans';
 
 const Pricing = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -154,62 +155,15 @@ const Pricing = () => {
       </section>
 
       {/* Pricing Plans Section */}
-      <section id="plans" className="py-20 md:py-24 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Choose Your Protection Level</h2>
-            <p className="text-gray-500 text-lg mt-4">Select the plan that fits the number of devices you need to monitor.</p>
-          </div>
-          <div className="flex flex-col md:flex-row justify-center items-stretch gap-6 md:gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div 
-                key={index} 
-                className={`bg-white rounded-2xl p-6 md:p-8 w-full md:w-96 text-center border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl relative ${
-                  plan.popular 
-                    ? 'border-indigo-600 shadow-lg md:scale-102' 
-                    : 'border-gray-100'
-                }`}
-                style={plan.popular ? { transform: 'scale(1.02)' } : {}}
-              >
-                {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-                    MOST POPULAR
-                  </span>
-                )}
-                <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
-                <div className="text-4xl font-extrabold text-indigo-600 mt-4">
-                  ${plan.price}<span className="text-base font-medium text-gray-400">/{plan.period}</span>
-                </div>
-                <p className="text-gray-500 text-sm mt-2 mb-6">{plan.description}</p>
-                <ul className="space-y-3 text-left mb-8">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className={`flex items-center gap-2 ${!feature.included ? 'opacity-50' : ''}`}>
-                      {feature.included ? (
-                        <FaCheck className="text-cyan-500 flex-shrink-0" size={16} />
-                      ) : (
-                        <FaTimesIcon className="text-gray-300 flex-shrink-0" size={16} />
-                      )}
-                      <span className={`text-sm ${feature.highlight ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <Link 
-                  to={plan.ctaLink} 
-                  className={`block w-full py-3 rounded-full font-semibold transition-all ${
-                    plan.popular 
-                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-md hover:shadow-lg' 
-                      : 'border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+     <section id="plans" className="py-20 md:py-24 px-20">
+      <Plans 
+        showSelectButton={true}
+        columns={3}
+        navigateOnSelect={true}
+      /> 
+      </section> 
+
+        
 
       {/* FAQ Section */}
       <section className="py-20 md:py-24 px-4 bg-indigo-50/30">

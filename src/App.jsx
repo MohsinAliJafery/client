@@ -58,6 +58,15 @@ function App() {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-and-condition" element={<TermsConditions />} />
+        <Route path="/payment" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Payment />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
         
         <Route 
           path="/dashboard" 
@@ -65,16 +74,6 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/payment" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Payment />
               </Layout>
             </ProtectedRoute>
           } 

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom'; // Add this import
+import { Link } from 'react-router-dom';
 import { 
   FaVideo, FaVolumeUp, FaFolderOpen, FaMapMarkerAlt, 
   FaClock, FaBan, FaGooglePlay, FaApple, FaChevronDown,
   FaBars, FaTimes
 } from 'react-icons/fa';
+import Plans from './Plans';
 
 const HomePage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -189,32 +190,11 @@ const HomePage = () => {
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">Simple Pricing</h2>
             <p className="text-gray-500 text-lg mt-4">Choose the plan that fits your family size.</p>
           </div>
-          <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div key={index} className={`bg-white rounded-2xl p-6 md:p-8 w-full md:w-80 text-center border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl relative ${plan.popular ? 'border-indigo-200 shadow-lg' : 'border-gray-100'}`}>
-                {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full">MOST POPULAR</span>
-                )}
-                <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
-                <div className="text-4xl font-extrabold text-indigo-600 mt-4">
-                  ${plan.price}<span className="text-base font-medium text-gray-400">/{plan.period}</span>
-                </div>
-                <ul className="mt-6 space-y-3 text-left">
-                  <li className="flex items-center gap-2 text-gray-600">
-                    <span className="text-cyan-500">✓</span> {plan.devices}
-                  </li>
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-gray-600">
-                      <span className="text-cyan-500">✓</span> {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/signup" className={`mt-8 inline-block w-full py-3 rounded-full font-semibold transition-all ${plan.popular ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-md hover:shadow-lg' : 'border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}>
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
+            <Plans 
+              showSelectButton={true}
+              columns={3}
+              navigateOnSelect={false}
+            />
         </div>
       </section>
 
