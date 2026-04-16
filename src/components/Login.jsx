@@ -20,6 +20,10 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  useEffect(() => {
+  window.scrollTo(0, 0);
+}, []);
+
   // Get URL parameters
   const getRedirectParams = () => {
     const params = new URLSearchParams(location.search);
