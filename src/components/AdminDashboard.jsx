@@ -12,7 +12,9 @@ import {
   UserCheck,
   Activity,
   AlertCircle,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -24,6 +26,21 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
+  // Pagination state for users
+  const [userPage, setUserPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalUserPages, setTotalUserPages] = useState(1);
+  const [isFetchingUsers, setIsFetchingUsers] = useState(false);
+  
+  // Pagination state for transactions
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [totalTransactionPages, setTotalTransactionPages] = useState(1);
+  const [isFetchingTransactions, setIsFetchingTransactions] = useState(false);
+  const [allTransactions, setAllTransactions] = useState([]); // Store all transactions
+  
+  const [pageSize] = useState(20);
 
   const token = JSON.parse(localStorage.getItem('user'))?.token;
 
@@ -34,9 +51,24 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      await Promise.all([
+        fetchUsers(1),
+        fetchAllTransactions()
+      ]);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to fetch dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUsers = async (page = 1) => {
+    try {
+      setIsFetchingUsers(true);
 
       const usersRes = await API.get(
-        'https://serv2.kidzet.com/admin/users?page=1&limit=20',
+        `https://serv2.kidzet.com/admin/users?page=${page}&limit=${pageSize}`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -45,10 +77,55 @@ const AdminDashboard = () => {
       );
 
       const apiUsers = usersRes.data.users || [];
-
+      const total = usersRes.data.total || 0;
+      
       setUsers(apiUsers);
+      setTotalUsers(total);
+      setTotalUserPages(Math.ceil(total / pageSize));
+      setUserPage(page);
 
-      const txFromUsers = apiUsers
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
+    } finally {
+      setIsFetchingUsers(false);
+    }
+  };
+
+  // Fetch all users to get all transactions
+  const fetchAllTransactions = async () => {
+    try {
+      setIsFetchingTransactions(true);
+      
+      let allUsers = [];
+      let page = 1;
+      let hasMore = true;
+      
+      // Fetch all pages of users
+      while (hasMore) {
+        const response = await API.get(
+          `https://serv2.kidzet.com/admin/users?page=${page}&limit=100`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        
+        const users = response.data.users || [];
+        allUsers = [...allUsers, ...users];
+        
+        // Check if we've fetched all users
+        const total = response.data.total || 0;
+        if (allUsers.length >= total) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+      
+      // Process all transactions from all users
+      const txFromUsers = allUsers
         .filter(user => Number(user.last_payment_amount || 0) > 0)
         .map(user => ({
           id: user.uid,
@@ -64,15 +141,41 @@ const AdminDashboard = () => {
             : 'expired',
           date: user.created_at
         }));
-
-      setTransactions(txFromUsers);
-
+      
+      setAllTransactions(txFromUsers);
+      setTotalTransactions(txFromUsers.length);
+      setTotalTransactionPages(Math.ceil(txFromUsers.length / pageSize));
+      
+      // Set initial page of transactions
+      updateTransactionPage(txFromUsers, 1);
+      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to fetch dashboard data');
+      console.error('Error fetching all transactions:', error);
+      toast.error('Failed to fetch transactions');
     } finally {
-      setLoading(false);
+      setIsFetchingTransactions(false);
     }
+  };
+
+  // Update transaction page based on current page
+  const updateTransactionPage = (transactionsData, page) => {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const paginatedTransactions = transactionsData.slice(start, end);
+    setTransactions(paginatedTransactions);
+    setTransactionPage(page);
+  };
+
+  const handleUserPageChange = (page) => {
+    if (page < 1 || page > totalUserPages || page === userPage) return;
+    fetchUsers(page);
+    document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleTransactionPageChange = (page) => {
+    if (page < 1 || page > totalTransactionPages || page === transactionPage) return;
+    updateTransactionPage(allTransactions, page);
+    document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleDeleteUser = async (uid) => {
@@ -88,8 +191,11 @@ const AdminDashboard = () => {
 
       if (response.data.success) {
         toast.success('User deleted successfully');
-        setUsers(prev => prev.filter(user => user.uid !== uid));
-        setTransactions(prev => prev.filter(tx => tx.uid !== uid));
+        // Refresh all data after deletion
+        await Promise.all([
+          fetchUsers(userPage),
+          fetchAllTransactions()
+        ]);
         setDeleteConfirm(null);
       } else {
         toast.error('Failed to delete user');
@@ -138,7 +244,7 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Total Users"
-          value={users.length}
+          value={totalUsers}
           icon={<Users size={22} />}
           color="indigo"
         />
@@ -159,7 +265,7 @@ const AdminDashboard = () => {
 
         <StatCard
           title="Transactions"
-          value={transactions.length}
+          value={totalTransactions}
           icon={<Activity size={22} />}
           color="orange"
         />
@@ -200,6 +306,12 @@ const AdminDashboard = () => {
                 setShowUserModal(true);
               }}
               onDeleteUser={(user) => setDeleteConfirm(user)}
+              currentPage={userPage}
+              totalPages={totalUserPages}
+              totalUsers={totalUsers}
+              pageSize={pageSize}
+              onPageChange={handleUserPageChange}
+              isFetching={isFetchingUsers}
             />
           )}
 
@@ -208,6 +320,12 @@ const AdminDashboard = () => {
               transactions={filteredTransactions}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
+              currentPage={transactionPage}
+              totalPages={totalTransactionPages}
+              totalTransactions={totalTransactions}
+              pageSize={pageSize}
+              onPageChange={handleTransactionPageChange}
+              isFetching={isFetchingTransactions}
             />
           )}
         </div>
@@ -262,7 +380,117 @@ const StatCard = ({ title, value, icon, color }) => {
   );
 };
 
-const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick, onDeleteUser }) => {
+// Pagination Component
+const Pagination = ({ 
+  currentPage, 
+  totalPages, 
+  totalItems, 
+  pageSize, 
+  onPageChange, 
+  isFetching,
+  itemName = 'items'
+}) => {
+  if (totalPages <= 1 && totalItems <= pageSize) return null;
+
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      if (currentPage <= 3) {
+        end = 4;
+      } else if (currentPage >= totalPages - 2) {
+        start = totalPages - 3;
+      }
+      
+      if (start > 2) pages.push('...');
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages - 1) pages.push('...');
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200">
+      <div className="text-sm text-gray-500">
+        Showing {startItem} - {endItem} of {totalItems} {itemName}
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1 || isFetching}
+          className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        
+        <div className="flex items-center gap-1">
+          {getPageNumbers().map((page, index) => (
+            <React.Fragment key={index}>
+              {page === '...' ? (
+                <span className="px-2 text-gray-400">...</span>
+              ) : (
+                <button
+                  onClick={() => onPageChange(page)}
+                  disabled={isFetching}
+                  className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages || isFetching}
+          className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const UsersTable = ({ 
+  users, 
+  searchTerm, 
+  setSearchTerm, 
+  onUserClick, 
+  onDeleteUser,
+  currentPage,
+  totalPages,
+  totalUsers,
+  pageSize,
+  onPageChange,
+  isFetching
+}) => {
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     return new Date(Number(timestamp)).toLocaleDateString();
@@ -296,7 +524,9 @@ const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick, onDeleteUse
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h3 className="text-base font-semibold text-gray-800">All Users</h3>
-          <p className="text-xs text-gray-500">Users from in-app purchases API</p>
+          <p className="text-xs text-gray-500">
+            Page {currentPage} of {totalPages} • {totalUsers} total users
+          </p>
         </div>
 
         <div className="relative w-full sm:w-64">
@@ -311,7 +541,7 @@ const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick, onDeleteUse
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-100">
+      <div className="table-container overflow-x-auto rounded-lg border border-gray-100 relative">
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
@@ -400,19 +630,45 @@ const UsersTable = ({ users, searchTerm, setSearchTerm, onUserClick, onDeleteUse
             })}
           </tbody>
         </table>
+        
+        {isFetching && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600" />
+          </div>
+        )}
       </div>
 
-      {users.length === 0 && (
+      {users.length === 0 && !isFetching && (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <Users className="mx-auto h-10 w-10 text-gray-300" />
           <h3 className="mt-2 text-sm font-medium text-gray-600">No users found</h3>
         </div>
       )}
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalUsers}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        isFetching={isFetching}
+        itemName="users"
+      />
     </div>
   );
 };
 
-const TransactionsTable = ({ transactions, searchTerm, setSearchTerm }) => {
+const TransactionsTable = ({ 
+  transactions, 
+  searchTerm, 
+  setSearchTerm,
+  currentPage,
+  totalPages,
+  totalTransactions,
+  pageSize,
+  onPageChange,
+  isFetching
+}) => {
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     return new Date(Number(timestamp)).toLocaleDateString();
@@ -423,7 +679,9 @@ const TransactionsTable = ({ transactions, searchTerm, setSearchTerm }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h3 className="text-base font-semibold text-gray-800">All Transactions</h3>
-          <p className="text-xs text-gray-500">In-app purchase payment history</p>
+          <p className="text-xs text-gray-500">
+            Page {currentPage} of {totalPages} • {totalTransactions} total transactions
+          </p>
         </div>
 
         <div className="relative w-full sm:w-64">
@@ -438,7 +696,7 @@ const TransactionsTable = ({ transactions, searchTerm, setSearchTerm }) => {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-100">
+      <div className="overflow-x-auto rounded-lg border border-gray-100 relative">
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
@@ -503,14 +761,30 @@ const TransactionsTable = ({ transactions, searchTerm, setSearchTerm }) => {
             ))}
           </tbody>
         </table>
+        
+        {isFetching && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600" />
+          </div>
+        )}
       </div>
 
-      {transactions.length === 0 && (
+      {transactions.length === 0 && !isFetching && (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <CreditCard className="mx-auto h-10 w-10 text-gray-300" />
           <h3 className="mt-2 text-sm font-medium text-gray-600">No transactions found</h3>
         </div>
       )}
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalTransactions}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        isFetching={isFetching}
+        itemName="transactions"
+      />
     </div>
   );
 };
