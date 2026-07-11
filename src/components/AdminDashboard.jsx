@@ -38,7 +38,15 @@ const AdminDashboard = () => {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [totalTransactionPages, setTotalTransactionPages] = useState(1);
   const [isFetchingTransactions, setIsFetchingTransactions] = useState(false);
-  const [allTransactions, setAllTransactions] = useState([]); // Store all transactions
+  const [allTransactions, setAllTransactions] = useState([]);
+  
+  // Stats state
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeSubscriptions: 0,
+    totalRevenue: 0,
+    totalTransactions: 0
+  });
   
   const [pageSize] = useState(20);
 
@@ -92,7 +100,32 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetch all users to get all transactions
+  // Helper function to check if user has a trial plan
+  const isTrialPlan = (user) => {
+    const planName = (user.plan_name || '').toLowerCase();
+    const productId = (user.product_id || '').toLowerCase();
+    
+    // Check for trial in plan_name or product_id
+    return planName.includes('trial') || productId.includes('trial');
+  };
+
+  // Helper function to check if user has valid active subscription (excluding trial)
+  const hasValidActiveSubscription = (user) => {
+    // Check if subscription is active (from API)
+    const isActive = user.status === 'active';
+    
+    // Check if subscription expiry is in the future
+    const hasValidExpiry = user.subscription_expiry && 
+      Number(user.subscription_expiry) > Date.now();
+    
+    // Check if it's NOT a trial plan
+    const notTrial = !isTrialPlan(user);
+    
+    // Return true only if active, has valid expiry, and not trial
+    return isActive && hasValidExpiry && notTrial;
+  };
+
+  // Fetch all users to get all transactions and calculate stats
   const fetchAllTransactions = async () => {
     try {
       setIsFetchingTransactions(true);
@@ -124,9 +157,42 @@ const AdminDashboard = () => {
         }
       }
       
-      // Process all transactions from all users
+      // Calculate accurate stats
+      const now = Date.now();
+      
+      // Active subscriptions: users with active status, valid expiry, and NOT trial
+      const activeSubs = allUsers.filter(user => 
+        hasValidActiveSubscription(user)
+      ).length;
+      
+      // Total revenue: sum of all last_payment_amount (only positive amounts, exclude trial)
+      const totalRev = allUsers.reduce((sum, user) => {
+        const amount = Number(user.last_payment_amount || 0);
+        // Only include if not trial and amount is positive
+        if (!isTrialPlan(user) && amount > 0) {
+          return sum + amount;
+        }
+        return sum;
+      }, 0);
+      
+      // Total transactions: users with payment amount > 0 and not trial
+      const txCount = allUsers.filter(user => 
+        Number(user.last_payment_amount || 0) > 0 && !isTrialPlan(user)
+      ).length;
+      
+      // Update stats
+      setStats({
+        totalUsers: allUsers.length,
+        activeSubscriptions: activeSubs,
+        totalRevenue: totalRev,
+        totalTransactions: txCount
+      });
+      
+      // Process all transactions from all users (only those with payment, exclude trial)
       const txFromUsers = allUsers
-        .filter(user => Number(user.last_payment_amount || 0) > 0)
+        .filter(user => 
+          Number(user.last_payment_amount || 0) > 0 && !isTrialPlan(user)
+        )
         .map(user => ({
           id: user.uid,
           uid: user.uid,
@@ -136,15 +202,19 @@ const AdminDashboard = () => {
           currency: user.last_payment_currency || 'USD',
           platform: user.last_payment_platform || 'N/A',
           plan: user.plan_name || user.product_id || 'No Plan',
-          status: user.subscription_expiry && Number(user.subscription_expiry) > Date.now()
+          // Check if subscription is active based on expiry and NOT trial
+          status: user.status === 'active' && 
+                  user.subscription_expiry && 
+                  Number(user.subscription_expiry) > Date.now() &&
+                  !isTrialPlan(user)
             ? 'active'
             : 'expired',
           date: user.created_at
         }));
       
       setAllTransactions(txFromUsers);
-      setTotalTransactions(txFromUsers.length);
-      setTotalTransactionPages(Math.ceil(txFromUsers.length / pageSize));
+      setTotalTransactions(txCount);
+      setTotalTransactionPages(Math.ceil(txCount / pageSize));
       
       // Set initial page of transactions
       updateTransactionPage(txFromUsers, 1);
@@ -220,16 +290,6 @@ const AdminDashboard = () => {
     tx.plan?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const activeSubscriptions = users.filter(user =>
-    user.subscription_expiry &&
-    Number(user.subscription_expiry) > Date.now()
-  ).length;
-
-  const totalRevenue = users.reduce(
-    (sum, user) => sum + Number(user.last_payment_amount || 0),
-    0
-  );
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
@@ -244,28 +304,28 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Total Users"
-          value={totalUsers}
+          value={stats.totalUsers}
           icon={<Users size={22} />}
           color="indigo"
         />
 
         <StatCard
           title="Active Subscriptions"
-          value={activeSubscriptions}
+          value={stats.activeSubscriptions}
           icon={<UserCheck size={22} />}
           color="green"
         />
 
         <StatCard
           title="Total Revenue"
-          value={`${totalRevenue.toLocaleString()}`}
+          value={`$${stats.totalRevenue.toLocaleString()}`}
           icon={<DollarSign size={22} />}
           color="purple"
         />
 
         <StatCard
           title="Transactions"
-          value={totalTransactions}
+          value={stats.totalTransactions}
           icon={<Activity size={22} />}
           color="orange"
         />
@@ -500,12 +560,37 @@ const UsersTable = ({
     return user.plan_name || user.product_id || 'No Plan';
   };
 
-  const getSubscriptionStatus = (user) => {
-    if (!user.subscription_expiry) return user.status || 'inactive';
+  const isTrialPlan = (user) => {
+    const planName = (user.plan_name || '').toLowerCase();
+    const productId = (user.product_id || '').toLowerCase();
+    return planName.includes('trial') || productId.includes('trial');
+  };
 
-    return Number(user.subscription_expiry) > Date.now()
-      ? 'active'
-      : 'expired';
+  const getSubscriptionStatus = (user) => {
+    // If status is not 'active' from API, show as inactive
+    if (user.status !== 'active') {
+      return 'inactive';
+    }
+    
+    // Check if it's a trial plan
+    if (isTrialPlan(user)) {
+      return 'trial';
+    }
+    
+    // Check if subscription expiry is valid
+    if (!user.subscription_expiry) {
+      return 'inactive';
+    }
+    
+    const expiry = Number(user.subscription_expiry);
+    const now = Date.now();
+    
+    // Check if expiry is in the future
+    if (expiry > now) {
+      return 'active';
+    } else {
+      return 'expired';
+    }
   };
 
   const getStatusColor = (status) => {
@@ -514,6 +599,9 @@ const UsersTable = ({
         return 'bg-green-100 text-green-700';
       case 'expired':
         return 'bg-red-100 text-red-700';
+      case 'trial':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'inactive':
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -592,7 +680,7 @@ const UsersTable = ({
 
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
-                      {user.last_payment_platform || 'N/A'}
+                      {user.last_payment_platform || 'Web Portal'}
                     </span>
                   </td>
 
@@ -795,6 +883,35 @@ const UserDetailModal = ({ user, onClose }) => {
     return new Date(Number(timestamp)).toLocaleDateString();
   };
 
+  const isTrialPlan = (user) => {
+    const planName = (user.plan_name || '').toLowerCase();
+    const productId = (user.product_id || '').toLowerCase();
+    return planName.includes('trial') || productId.includes('trial');
+  };
+
+  const getSubscriptionStatus = (user) => {
+    if (user.status !== 'active') {
+      return 'inactive';
+    }
+    
+    if (isTrialPlan(user)) {
+      return 'trial';
+    }
+    
+    if (!user.subscription_expiry) {
+      return 'inactive';
+    }
+    
+    const expiry = Number(user.subscription_expiry);
+    const now = Date.now();
+    
+    if (expiry > now) {
+      return 'active';
+    } else {
+      return 'expired';
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-md w-full">
@@ -822,7 +939,7 @@ const UserDetailModal = ({ user, onClose }) => {
 
           <div className="grid grid-cols-2 gap-3 pt-2">
             <InfoBox label="Role" value={user.role || 'user'} />
-            <InfoBox label="Status" value={user.status || 'inactive'} />
+            <InfoBox label="Status" value={getSubscriptionStatus(user)} />
             <InfoBox label="Plan" value={user.plan_name || 'No Plan'} />
             <InfoBox label="Device Limit" value={user.device_limit || 1} />
             <InfoBox label="Product ID" value={user.product_id || 'N/A'} />
